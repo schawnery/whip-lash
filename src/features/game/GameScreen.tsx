@@ -206,8 +206,14 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
       <CardContent className="space-y-6">
 
         <div className="flex flex-col items-center justify-center py-4">
-          <div className={`text-8xl font-black ${getGradeColor(results.overallScore)} drop-shadow-2xl leading-none`}>
-            {getGradeLetter(results.overallScore)}
+          <div className="flex items-center gap-6">
+            <div className={`text-8xl font-black ${getGradeColor(results.overallScore)} drop-shadow-2xl leading-none`}>
+              {getGradeLetter(results.overallScore)}
+            </div>
+            <div className="text-3xl font-bold uppercase tracking-widest text-neutral-500">
+              {results.earlyCount > results.lateCount ? 'Rushing' :
+                results.lateCount > results.earlyCount ? 'Dragging' : 'Whipped your lash'}
+            </div>
           </div>
           <div className="mt-4 text-xl text-neutral-400 font-medium">
             Target: <span className="text-white">{tempo} BPM</span>
@@ -231,13 +237,6 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
 
         <div className="space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-neutral-400">Tendency</span>
-            <span className="font-medium">
-              {results.earlyCount > results.lateCount ? 'Rushing (Early)' :
-                results.lateCount > results.earlyCount ? 'Dragging (Late)' : 'Balanced'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-sm">
             <span className="text-neutral-400">Best Tap</span>
             <span className="font-medium text-green-500">{Math.round(results.bestTap?.errorMs || 0)}ms</span>
           </div>
@@ -249,7 +248,7 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
 
         <div className="pt-4 border-t border-neutral-800">
           <h4 className="text-sm font-medium mb-3 text-neutral-400">Beat Breakdown (BPM)</h4>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 justify-center">
+          <div className="grid grid-cols-4 gap-2 justify-center">
             {results.taps.map((tap, i) => {
               let color = 'text-red-500 bg-red-500/10';
               if (tap.score === 100) color = 'text-green-500 bg-green-500/10';
@@ -257,20 +256,86 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
               else if (tap.score >= 50) color = 'text-yellow-500 bg-yellow-500/10';
               else if (tap.score >= 20) color = 'text-orange-500 bg-orange-500/10';
 
+              const errorMs = Math.round(tap.errorMs);
+              const diffStr = errorMs > 0 ? `+${errorMs}ms` : `${errorMs}ms`;
+              const isBest = results.bestTap && tap.timestamp === results.bestTap.timestamp;
+
               return (
                 <div
                   key={i}
-                  className={`flex flex-col items-center justify-center p-1 rounded-md ${color}`}
+                  className={`flex flex-col items-center justify-center p-1.5 rounded-md relative ${color}`}
                   title={`Error: ${Math.round(tap.errorMs)}ms`}
                 >
+                  {isBest && <span className="absolute -top-2 -right-2 text-xs">⭐</span>}
                   <span className="text-[10px] opacity-70">#{i + 1}</span>
                   <span className="text-sm font-bold">{Math.round(tap.achievedBPM)}</span>
+                  <span className="text-[10px] font-medium opacity-80 mt-0.5">{diffStr}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
+        <div className="pt-4 border-t border-neutral-800 mt-6">
+          <h4 className="text-sm font-medium mb-4 text-neutral-400">Timing Visualizer</h4>
+          <div className="relative w-full flex flex-col items-center py-4 bg-neutral-900/50 rounded-xl overflow-hidden">
+            {/* The vertical true timeline track */}
+            <div className="absolute top-0 bottom-0 w-0.5 bg-neutral-700"></div>
+            
+            {results.taps.map((tap, i) => {
+              const maxVisualError = 150;
+              const maxPx = 30; // Max offset in pixels
+              let offsetPx = (tap.errorMs / maxVisualError) * maxPx;
+              
+              if (offsetPx > maxPx) offsetPx = maxPx;
+              if (offsetPx < -maxPx) offsetPx = -maxPx;
+
+              let color = 'bg-red-500';
+              let textColor = 'text-red-500';
+              let label = tap.errorMs > 0 ? 'DRAG' : 'RUSH';
+              
+              if (tap.score === 100) {
+                color = 'bg-green-500';
+                textColor = 'text-green-500';
+                label = 'PERFECT';
+              } else if (tap.score >= 80) {
+                color = 'bg-green-400';
+                textColor = 'text-green-400';
+              } else if (tap.score >= 50) {
+                color = 'bg-yellow-500';
+                textColor = 'text-yellow-500';
+              } else if (tap.score >= 20) {
+                color = 'bg-orange-500';
+                textColor = 'text-orange-500';
+              }
+
+              return (
+                <div key={i} className="relative h-20 w-full flex justify-center items-center">
+                  {/* True beat indicator */}
+                  <div className="absolute w-4 h-0.5 bg-neutral-500 z-0"></div>
+                  
+                  {/* Beat number */}
+                  <div className="absolute left-4 sm:left-12 text-neutral-600 text-xs font-medium w-8 text-right">
+                    {i + 1}
+                  </div>
+
+                  {/* User Tap Marker */}
+                  <div 
+                    className="absolute flex items-center justify-center w-full"
+                    style={{ transform: `translateY(${offsetPx}px)`, zIndex: 10 }}
+                  >
+                    <div className={`w-3 h-3 rounded-full ${color} shadow-[0_0_10px_currentColor] border-2 border-neutral-900`}></div>
+                    
+                    {/* Label */}
+                    <div className={`absolute left-[50%] ml-4 text-[10px] font-bold tracking-wider ${textColor} w-20`}>
+                      {label}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </CardContent>
       <CardFooter>
         <Button className="w-full h-12" onClick={onRestart}>Try Again</Button>
