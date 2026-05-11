@@ -14,6 +14,8 @@ export default function GameScreen() {
     gameState,
     tempo,
     setTempo,
+    isRandomBPM,
+    setIsRandomBPM,
     startGame,
     handleTap,
     restartGame,
@@ -52,26 +54,26 @@ export default function GameScreen() {
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         {gameState === 'setup' && (
-          <SetupView tempo={tempo} setTempo={setTempo} onStart={startGame} />
+          <SetupView tempo={tempo} setTempo={setTempo} onStart={startGame} isRandomBPM={isRandomBPM} setIsRandomBPM={setIsRandomBPM} />
         )}
         
         {gameState === 'count-in' && (
-          <CountInView tempo={tempo} currentBeat={currentBeatIndex} totalBeats={COUNT_IN_BEATS} />
+          <CountInView tempo={tempo} isRandomBPM={isRandomBPM} currentBeat={currentBeatIndex} totalBeats={COUNT_IN_BEATS} />
         )}
 
         {gameState === 'tap' && (
-          <TapPhaseView tempo={tempo} tapCount={tapPhaseBeatCount} totalTaps={TOTAL_TAP_BEATS} />
+          <TapPhaseView tempo={tempo} isRandomBPM={isRandomBPM} tapCount={tapPhaseBeatCount} totalTaps={TOTAL_TAP_BEATS} />
         )}
 
         {gameState === 'results' && results && (
-          <ResultsView results={results} onRestart={restartGame} />
+          <ResultsView results={results} tempo={tempo} onRestart={restartGame} />
         )}
       </div>
     </div>
   );
 }
 
-function SetupView({ tempo, setTempo, onStart }: { tempo: number, setTempo: (v: number) => void, onStart: () => void }) {
+function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void }) {
   return (
     <Card className="w-full">
       <CardHeader className="text-center">
@@ -80,23 +82,37 @@ function SetupView({ tempo, setTempo, onStart }: { tempo: number, setTempo: (v: 
       </CardHeader>
       <CardContent className="space-y-8">
         <div className="text-center space-y-4">
-          <div className="text-6xl font-bold tracking-tighter">{tempo}</div>
+          <div className="text-6xl font-bold tracking-tighter">{isRandomBPM ? "?" : tempo}</div>
           <div className="text-sm font-medium text-neutral-500 uppercase tracking-widest">BPM</div>
         </div>
         
         <div className="space-y-4">
-          <Slider 
-            value={[tempo]} 
-            onValueChange={(val) => setTempo(val[0])} 
-            min={60} 
-            max={180} 
-            step={1} 
-          />
-          <div className="flex justify-between text-xs text-neutral-500">
-            <span>60</span>
-            <span>120</span>
-            <span>180</span>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-neutral-300">Random BPM</span>
+            <Button 
+              variant={isRandomBPM ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setIsRandomBPM(!isRandomBPM)}
+            >
+              {isRandomBPM ? "ON" : "OFF"}
+            </Button>
           </div>
+          {!isRandomBPM && (
+            <>
+              <Slider 
+                value={[tempo]} 
+                onValueChange={(val) => setTempo(val[0])} 
+                min={60} 
+                max={180} 
+                step={1} 
+              />
+              <div className="flex justify-between text-xs text-neutral-500">
+                <span>60</span>
+                <span>120</span>
+                <span>180</span>
+              </div>
+            </>
+          )}
         </div>
         
         <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-lg text-sm text-center">
@@ -111,12 +127,12 @@ function SetupView({ tempo, setTempo, onStart }: { tempo: number, setTempo: (v: 
   );
 }
 
-function CountInView({ tempo, currentBeat, totalBeats }: { tempo: number, currentBeat: number, totalBeats: number }) {
+function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats }: { tempo: number, isRandomBPM: boolean, currentBeat: number, totalBeats: number }) {
   return (
     <Card className="w-full border-blue-500/50 shadow-[0_0_50px_rgba(59,130,246,0.1)]">
       <CardHeader className="text-center">
         <Badge variant="secondary" className="mx-auto bg-blue-500/10 text-blue-500 mb-2">LISTEN</Badge>
-        <CardTitle className="text-2xl">{tempo} BPM</CardTitle>
+        <CardTitle className="text-2xl">{isRandomBPM ? "??? BPM" : `${tempo} BPM`}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-12">
         <div className="flex gap-4">
@@ -137,14 +153,14 @@ function CountInView({ tempo, currentBeat, totalBeats }: { tempo: number, curren
   );
 }
 
-function TapPhaseView({ tempo, tapCount, totalTaps }: { tempo: number, tapCount: number, totalTaps: number }) {
+function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: number, isRandomBPM: boolean, tapCount: number, totalTaps: number }) {
   const progress = Math.min(100, (tapCount / totalTaps) * 100);
   
   return (
     <Card className="w-full border-green-500/50 shadow-[0_0_50px_rgba(34,197,94,0.1)] select-none">
       <CardHeader className="text-center">
         <Badge variant="secondary" className="mx-auto bg-green-500/10 text-green-500 mb-2">TAP NOW</Badge>
-        <CardTitle className="text-2xl">{tempo} BPM</CardTitle>
+        <CardTitle className="text-2xl">{isRandomBPM ? "??? BPM" : `${tempo} BPM`}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-12 space-y-8">
         <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-4 border-neutral-800">
@@ -164,7 +180,7 @@ function TapPhaseView({ tempo, tapCount, totalTaps }: { tempo: number, tapCount:
   );
 }
 
-function ResultsView({ results, onRestart }: { results: GameResults, onRestart: () => void }) {
+function ResultsView({ results, tempo, onRestart }: { results: GameResults, tempo: number, onRestart: () => void }) {
   const getGradeColor = (score: number) => {
     if (score >= 90) return 'text-green-500';
     if (score >= 70) return 'text-yellow-500';
@@ -189,9 +205,12 @@ function ResultsView({ results, onRestart }: { results: GameResults, onRestart: 
       </CardHeader>
       <CardContent className="space-y-6">
         
-        <div className="flex justify-center py-4">
-          <div className={`text-8xl font-black ${getGradeColor(results.overallScore)} drop-shadow-2xl`}>
+        <div className="flex flex-col items-center justify-center py-4">
+          <div className={`text-8xl font-black ${getGradeColor(results.overallScore)} drop-shadow-2xl leading-none`}>
             {getGradeLetter(results.overallScore)}
+          </div>
+          <div className="mt-4 text-xl text-neutral-400 font-medium">
+            Target: <span className="text-white">{tempo} BPM</span>
           </div>
         </div>
 

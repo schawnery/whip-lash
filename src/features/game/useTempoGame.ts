@@ -6,6 +6,7 @@ import { calculateScoreForTap, calculateResults } from './scoring';
 export const useTempoGame = () => {
   const [gameState, setGameState] = useState<GameState>('setup');
   const [tempo, setTempo] = useState<number>(100);
+  const [isRandomBPM, setIsRandomBPM] = useState<boolean>(false);
   const [results, setResults] = useState<GameResults | null>(null);
   
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
@@ -88,12 +89,18 @@ export const useTempoGame = () => {
     setCurrentBeatIndex(0);
     setTapPhaseBeatCount(0);
     
+    let startingTempo = tempo;
+    if (isRandomBPM) {
+      startingTempo = Math.floor(Math.random() * (180 - 60 + 1)) + 60;
+      setTempo(startingTempo);
+    }
+    
     metronome.init();
     audioContextRef.current = metronome.getContext();
     
     setGameState('count-in');
-    metronome.start(tempo);
-  }, [tempo]);
+    metronome.start(startingTempo);
+  }, [tempo, isRandomBPM]);
 
   const finishGame = useCallback(() => {
     setGameState('results');
@@ -176,6 +183,8 @@ export const useTempoGame = () => {
     gameState,
     tempo,
     setTempo,
+    isRandomBPM,
+    setIsRandomBPM,
     startGame,
     handleTap,
     restartGame,
