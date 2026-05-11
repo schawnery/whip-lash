@@ -34,7 +34,7 @@ export default function GameScreen() {
         if (gameState === 'tap') handleTap();
       }
     };
-    
+
     const handlePointerDown = (e: PointerEvent) => {
       // If clicking on buttons, let the button handle it
       if ((e.target as HTMLElement).closest('button')) return;
@@ -56,7 +56,7 @@ export default function GameScreen() {
         {gameState === 'setup' && (
           <SetupView tempo={tempo} setTempo={setTempo} onStart={startGame} isRandomBPM={isRandomBPM} setIsRandomBPM={setIsRandomBPM} />
         )}
-        
+
         {gameState === 'count-in' && (
           <CountInView tempo={tempo} isRandomBPM={isRandomBPM} currentBeat={currentBeatIndex} totalBeats={COUNT_IN_BEATS} />
         )}
@@ -77,20 +77,20 @@ function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { 
   return (
     <Card className="w-full">
       <CardHeader className="text-center">
-        <CardTitle className="text-3xl">Rhythm Accuracy</CardTitle>
-        <CardDescription>Test your internal metronome</CardDescription>
+        <CardTitle className="text-5xl">Whip Lash</CardTitle>
+        <CardDescription>Are you rushing or are you dragging?</CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         <div className="text-center space-y-4">
           <div className="text-6xl font-bold tracking-tighter">{isRandomBPM ? "?" : tempo}</div>
           <div className="text-sm font-medium text-neutral-500 uppercase tracking-widest">BPM</div>
         </div>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-neutral-300">Random BPM</span>
-            <Button 
-              variant={isRandomBPM ? "default" : "outline"} 
+            <Button
+              variant={isRandomBPM ? "default" : "outline"}
               size="sm"
               onClick={() => setIsRandomBPM(!isRandomBPM)}
             >
@@ -99,25 +99,25 @@ function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { 
           </div>
           {!isRandomBPM && (
             <>
-              <Slider 
-                value={[tempo]} 
-                onValueChange={(val) => setTempo(val[0])} 
-                min={60} 
-                max={180} 
-                step={1} 
+              <Slider
+                value={[tempo]}
+                onValueChange={(val) => setTempo(val[0])}
+                min={60}
+                max={220}
+                step={1}
               />
               <div className="flex justify-between text-xs text-neutral-500">
                 <span>60</span>
                 <span>120</span>
-                <span>180</span>
+                <span>220</span>
               </div>
             </>
           )}
         </div>
-        
+
         <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-lg text-sm text-center">
-          You'll hear 4 count-in beats. 
-          <br/>After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
+          You'll hear 4 count-in beats.
+          <br />After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
         </div>
       </CardContent>
       <CardFooter>
@@ -137,10 +137,10 @@ function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats }: { tempo: n
       <CardContent className="flex flex-col items-center justify-center py-12">
         <div className="flex gap-4">
           {Array.from({ length: totalBeats }).map((_, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className={`w-12 h-12 rounded-full transition-all duration-100 flex items-center justify-center font-bold text-xl
-                ${i === currentBeat ? 'bg-blue-500 text-white scale-110 shadow-[0_0_20px_rgba(59,130,246,0.5)]' : 
+                ${i === currentBeat ? 'bg-blue-500 text-white scale-110 shadow-[0_0_20px_rgba(59,130,246,0.5)]' :
                   i < currentBeat ? 'bg-blue-500/30 text-blue-200' : 'bg-neutral-800 text-neutral-600'}`}
             >
               {i + 1}
@@ -155,7 +155,7 @@ function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats }: { tempo: n
 
 function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: number, isRandomBPM: boolean, tapCount: number, totalTaps: number }) {
   const progress = Math.min(100, (tapCount / totalTaps) * 100);
-  
+
   return (
     <Card className="w-full border-green-500/50 shadow-[0_0_50px_rgba(34,197,94,0.1)] select-none">
       <CardHeader className="text-center">
@@ -170,7 +170,7 @@ function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: numb
             <div className="text-sm text-neutral-400">/ {totalTaps}</div>
           </div>
         </div>
-        
+
         <div className="w-full space-y-2">
           <Progress value={progress} className="h-2 bg-neutral-800" />
           <p className="text-center text-sm text-neutral-500">Press Space or Tap Screen on the beat</p>
@@ -204,7 +204,7 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
         <CardTitle className="text-3xl">Results</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        
+
         <div className="flex flex-col items-center justify-center py-4">
           <div className={`text-8xl font-black ${getGradeColor(results.overallScore)} drop-shadow-2xl leading-none`}>
             {getGradeLetter(results.overallScore)}
@@ -233,8 +233,8 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
           <div className="flex justify-between items-center text-sm">
             <span className="text-neutral-400">Tendency</span>
             <span className="font-medium">
-              {results.earlyCount > results.lateCount ? 'Rushing (Early)' : 
-               results.lateCount > results.earlyCount ? 'Dragging (Late)' : 'Balanced'}
+              {results.earlyCount > results.lateCount ? 'Rushing (Early)' :
+                results.lateCount > results.earlyCount ? 'Dragging (Late)' : 'Balanced'}
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
@@ -246,7 +246,7 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
             <span className="font-medium text-red-500">{Math.round(results.worstTap?.errorMs || 0)}ms</span>
           </div>
         </div>
-        
+
         <div className="pt-4 border-t border-neutral-800">
           <h4 className="text-sm font-medium mb-3 text-neutral-400">Beat Breakdown (BPM)</h4>
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 justify-center">
@@ -258,8 +258,8 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
               else if (tap.score >= 20) color = 'text-orange-500 bg-orange-500/10';
 
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className={`flex flex-col items-center justify-center p-1 rounded-md ${color}`}
                   title={`Error: ${Math.round(tap.errorMs)}ms`}
                 >
