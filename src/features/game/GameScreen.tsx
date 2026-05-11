@@ -115,7 +115,7 @@ function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { 
           )}
         </div>
 
-        <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-lg text-sm text-center">
+        <div className="bg-muted p-4 rounded-lg text-sm text-center">
           You'll hear 4 count-in beats.
           <br />After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
         </div>
@@ -141,7 +141,7 @@ function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats }: { tempo: n
               key={i}
               className={`w-12 h-12 rounded-full transition-all duration-100 flex items-center justify-center font-bold text-xl
                 ${i === currentBeat ? 'bg-blue-500 text-white scale-110 shadow-[0_0_20px_rgba(59,130,246,0.5)]' :
-                  i < currentBeat ? 'bg-blue-500/30 text-blue-200' : 'bg-neutral-800 text-neutral-600'}`}
+                  i < currentBeat ? 'bg-blue-500/30 text-blue-200' : 'bg-muted text-muted-foreground'}`}
             >
               {i + 1}
             </div>
@@ -163,7 +163,7 @@ function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: numb
         <CardTitle className="text-2xl">{isRandomBPM ? "??? BPM" : `${tempo} BPM`}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-12 space-y-8">
-        <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-4 border-neutral-800">
+        <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-4 border-muted">
           <div className="absolute inset-0 bg-green-500/5 rounded-full animate-ping opacity-50" />
           <div className="text-center z-10">
             <div className="text-5xl font-black">{tapCount}</div>
@@ -172,7 +172,7 @@ function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: numb
         </div>
 
         <div className="w-full space-y-2">
-          <Progress value={progress} className="h-2 bg-neutral-800" />
+          <Progress value={progress} className="h-2 bg-muted" />
           <p className="text-center text-sm text-neutral-500">Press Space or Tap Screen on the beat</p>
         </div>
       </CardContent>
@@ -297,10 +297,10 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
           </div>
         </div>
         <div className="mt-6">
-          <div className="w-full flex justify-center py-4 bg-neutral-900/50 rounded-xl overflow-hidden">
+          <div className="w-full flex justify-center py-4 bg-muted/50 rounded-xl overflow-hidden">
             <div className="relative w-[164px]">
               {/* The vertical true timeline track */}
-              <div className="absolute left-[6px] top-0 bottom-0 w-0.5 bg-neutral-700"></div>
+              <div className="absolute left-[6px] top-0 bottom-0 w-0.5 bg-muted-foreground/30"></div>
 
               {results.taps.map((tap, i) => {
                 const maxVisualError = 150;
@@ -334,7 +334,7 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
                 return (
                   <div key={i} className="relative h-12 w-full">
                     {/* True beat indicator */}
-                    <div className="absolute left-[-1px] top-[50%] mt-[-1px] w-4 h-0.5 bg-neutral-500 z-0"></div>
+                    <div className="absolute left-[-1px] top-[50%] mt-[-1px] w-4 h-0.5 bg-muted-foreground/40 z-0"></div>
 
                     {/* User Tap Marker */}
                     <div
