@@ -234,19 +234,7 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
             <div className="text-[10px] text-neutral-500 uppercase tracking-wider mt-1">Avg BPM</div>
           </div>
         </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-neutral-400">Best Tap</span>
-            <span className="font-medium text-green-500">{Math.round(results.bestTap?.errorMs || 0)}ms</span>
-          </div>
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-neutral-400">Worst Tap</span>
-            <span className="font-medium text-red-500">{Math.round(results.worstTap?.errorMs || 0)}ms</span>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t border-neutral-800 mt-6">
+        <div className="mt-8">
           <h4 className="text-sm font-medium mb-4 text-neutral-400">Timing Visualizer</h4>
           <div className="w-full flex justify-center py-4 bg-neutral-900/50 rounded-xl overflow-hidden">
             <div className="relative w-[164px]">
