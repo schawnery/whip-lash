@@ -188,6 +188,13 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
     return 'text-red-500';
   };
 
+  const getGradeBgColor = (score: number) => {
+    if (score >= 90) return 'bg-green-500';
+    if (score >= 70) return 'bg-yellow-500';
+    if (score >= 50) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
   const getGradeLetter = (score: number) => {
     if (score >= 95) return 'S';
     if (score >= 90) return 'A';
@@ -197,45 +204,89 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
     return 'F';
   };
 
+  const getTendencyInfo = () => {
+    if (results.earlyCount > results.lateCount) {
+      return { label: 'RUSHING', desc1: "You're consistently ahead of the beat.", desc2: "Try to hold back slightly." };
+    } else if (results.lateCount > results.earlyCount) {
+      return { label: 'DRAGGING', desc1: "You're consistently behind the beat.", desc2: "Try to anticipate the next click." };
+    } else {
+      return { label: 'BALANCED', desc1: "You're perfectly in the pocket.", desc2: "Great timing!" };
+    }
+  };
+  const tendency = getTendencyInfo();
+
   return (
     <Card className="w-full animate-in fade-in zoom-in duration-500">
-      <CardHeader className="text-center">
-        <Badge variant="outline" className="mx-auto mb-2">COMPLETE</Badge>
-        <CardTitle className="text-3xl">Results</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-6">
 
-        <div className="flex flex-col items-center justify-center py-4">
-          <div className="flex items-center gap-6">
-            <div className={`text-8xl font-black ${getGradeColor(results.overallScore)} drop-shadow-2xl leading-none`}>
+        <div className="flex flex-row justify-between items-center gap-6 py-6 overflow-hidden">
+          {/* Left Column */}
+          <div className="flex flex-col text-left shrink min-w-0">
+            <div className={`text-4xl font-black italic ${getGradeColor(results.overallScore)} leading-none`}>
               {getGradeLetter(results.overallScore)}
             </div>
-            <div className="text-3xl font-bold uppercase tracking-widest text-neutral-500">
-              {results.earlyCount > results.lateCount ? 'Rushing' :
-                results.lateCount > results.earlyCount ? 'Dragging' : 'Whipped your lash'}
+            <div className="text-3xl font-black uppercase tracking-tighter text-white mt-1 leading-none">
+              {tendency.label}
+            </div>
+            <div className="text-[11px] text-neutral-400 mt-3 leading-relaxed font-medium">
+              <p>{tendency.desc1}</p>
+              <p>{tendency.desc2}</p>
             </div>
           </div>
-          <div className="mt-4 text-xl text-neutral-400 font-medium">
-            Target: <span className="text-white">{tempo} BPM</span>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-neutral-900 p-3 rounded-xl flex flex-col items-center justify-center text-center">
-            <div className="text-xl font-bold">{results.accuracy}%</div>
-            <div className="text-[10px] text-neutral-500 uppercase tracking-wider mt-1">Accuracy</div>
-          </div>
-          <div className="bg-neutral-900 p-3 rounded-xl flex flex-col items-center justify-center text-center">
-            <div className="text-xl font-bold">{results.averageError}ms</div>
-            <div className="text-[10px] text-neutral-500 uppercase tracking-wider mt-1">Avg Error</div>
-          </div>
-          <div className="bg-neutral-900 p-3 rounded-xl flex flex-col items-center justify-center text-center">
-            <div className="text-xl font-bold">{results.averageBPM}</div>
-            <div className="text-[10px] text-neutral-500 uppercase tracking-wider mt-1">Avg BPM</div>
+          {/* Right Column */}
+          <div className="flex flex-col shrink-0 items-end text-right">
+            {/* Target BPM */}
+            <div>
+              <div className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">Target BPM</div>
+              <div className="flex items-baseline gap-1 leading-none mt-1">
+                <span className="text-3xl font-bold text-white tracking-tight">{tempo}</span>
+                <span className="text-[9px] text-neutral-500 font-medium">BPM</span>
+              </div>
+            </div>
+
+            <div className="h-[1px] bg-neutral-800/60 w-full my-3"></div>
+
+            {/* Accuracy */}
+            <div>
+              <div className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">Accuracy</div>
+              <div className={`text-3xl font-bold leading-none tracking-tight mt-1 ${getGradeColor(results.accuracy)}`}>
+                {results.accuracy}%
+              </div>
+              <div className="flex gap-1 mt-2 justify-end">
+                {[1, 2, 3, 4, 5].map((v) => {
+                  const isStrictActive = results.accuracy >= v * 20 - 10; 
+                  return (
+                    <div 
+                      key={v} 
+                      className={`h-1 w-5 rounded-full ${isStrictActive ? getGradeBgColor(results.accuracy) : 'bg-neutral-800'}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="h-[1px] bg-neutral-800/60 w-full my-3"></div>
+
+            {/* Bottom Row */}
+            <div className="flex gap-6">
+              <div className="text-right">
+                <div className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">Avg Error</div>
+                <div className="flex items-baseline gap-0.5 leading-none mt-1 justify-end">
+                  <span className="text-xl font-bold text-white tracking-tight">{results.averageError}</span>
+                  <span className="text-[9px] text-neutral-500 font-medium">ms</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">Avg BPM</div>
+                <div className="flex items-baseline gap-0.5 leading-none mt-1 justify-end">
+                  <span className="text-xl font-bold text-white tracking-tight">{results.averageBPM}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mt-8">
-          <h4 className="text-sm font-medium mb-4 text-neutral-400">Timing Visualizer</h4>
+        <div className="mt-6">
           <div className="w-full flex justify-center py-4 bg-neutral-900/50 rounded-xl overflow-hidden">
             <div className="relative w-[164px]">
               {/* The vertical true timeline track */}
