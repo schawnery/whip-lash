@@ -205,12 +205,22 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
   };
 
   const getTendencyInfo = () => {
-    if (results.earlyCount > results.lateCount) {
+    // Average absolute error — if ≤10ms they're nailing it
+    if (results.averageError <= 10) {
+      return { label: 'ON BEAT', desc1: "You're whipping your lash.", desc2: "Nearly perfect timing." };
+    }
+
+    // Average signed error across all taps:
+    //   negative = tapping before the beat = rushing (higher BPM)
+    //   positive = tapping after the beat  = dragging (lower BPM)
+    const avgSignedError = results.taps.length > 0
+      ? results.taps.reduce((sum, t) => sum + t.errorMs, 0) / results.taps.length
+      : 0;
+
+    if (avgSignedError < 0) {
       return { label: 'RUSHING', desc1: "You're consistently ahead of the beat.", desc2: "Try to hold back slightly." };
-    } else if (results.lateCount > results.earlyCount) {
-      return { label: 'DRAGGING', desc1: "You're consistently behind the beat.", desc2: "Try to anticipate the next click." };
     } else {
-      return { label: 'BALANCED', desc1: "You're perfectly in the pocket.", desc2: "Great timing!" };
+      return { label: 'DRAGGING', desc1: "You're consistently behind the beat.", desc2: "Try to anticipate the next click." };
     }
   };
   const tendency = getTendencyInfo();
@@ -336,12 +346,11 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
                       {/* Score Box */}
                       <div className="ml-5">
                         <div
-                          className={`flex flex-row items-center gap-3 px-3 py-1.5 rounded-md relative ${boxColor} w-[130px]`}
+                          className={`flex flex-row items-center gap-3 px-3 py-1.5 rounded-md relative ${boxColor} w-[100px]`}
                           title={`Error: ${errorMsRounded}ms`}
                         >
                           {isBest && <span className="absolute -top-2 -right-2 text-xs">⭐</span>}
                           <span className="text-[10px] font-medium opacity-60 w-4">#{i + 1}</span>
-                          <span className="text-sm font-bold w-6 text-center">{Math.round(tap.achievedBPM)}</span>
                           <span className="text-[10px] font-medium opacity-80 flex-1 text-right">{diffStr}</span>
                         </div>
                       </div>
