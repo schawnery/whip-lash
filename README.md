@@ -4,7 +4,7 @@ A solo rhythm/tempo accuracy game. Test how accurately you can keep tempo after 
 
 ## Features
 
-- **Adjustable BPM:** Choose any tempo from 60 to 180 BPM.
+- **Adjustable BPM:** Choose any tempo from 60 to 220 BPM.
 - **Count-in Phase:** Listen to a 4-beat metronome count-in to establish the tempo.
 - **Tap Phase:** Keep the rhythm going for 16 beats without the metronome.
 - **Multiple Inputs:** Tap using the Spacebar, Mouse click, or Touch.
