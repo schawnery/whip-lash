@@ -35,6 +35,8 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
+
     /* Defaulting to a deep dark theme for high contrast */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
@@ -60,6 +62,8 @@
   
   /* Light theme ready for future activation via .light class */
   .light {
+    color-scheme: light;
+
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 99%;
@@ -86,7 +90,16 @@
   * {
     @apply border-border;
   }
+  html {
+    background-color: #09090b;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground;
+    background-color: #09090b;
+    -webkit-tap-highlight-color: transparent;
+    /* iOS Safari safe viewport height */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 }

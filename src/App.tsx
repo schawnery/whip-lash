@@ -9,7 +9,7 @@ function App() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+    <main className="min-h-screen min-h-[100dvh] bg-neutral-950 text-neutral-50 flex items-center justify-center p-4">
       <GameScreen />
     </main>
   );

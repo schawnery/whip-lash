@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import type { GameResults } from './types';
 import { useTempoGame } from './useTempoGame';
 
@@ -51,22 +52,22 @@ export default function GameScreen() {
   }, [gameState, handleTap]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-50 flex items-center justify-center p-4">
+    <div className="min-h-screen min-h-[100dvh] bg-neutral-950 text-neutral-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         {gameState === 'setup' && (
           <SetupView tempo={tempo} setTempo={setTempo} onStart={startGame} isRandomBPM={isRandomBPM} setIsRandomBPM={setIsRandomBPM} />
         )}
 
         {gameState === 'count-in' && (
-          <CountInView tempo={tempo} isRandomBPM={isRandomBPM} currentBeat={currentBeatIndex} totalBeats={COUNT_IN_BEATS} />
+          <CountInView tempo={tempo} isRandomBPM={isRandomBPM} currentBeat={currentBeatIndex} totalBeats={COUNT_IN_BEATS} onBack={restartGame} />
         )}
 
         {gameState === 'tap' && (
-          <TapPhaseView tempo={tempo} isRandomBPM={isRandomBPM} tapCount={tapPhaseBeatCount} totalTaps={TOTAL_TAP_BEATS} />
+          <TapPhaseView tempo={tempo} isRandomBPM={isRandomBPM} tapCount={tapPhaseBeatCount} totalTaps={TOTAL_TAP_BEATS} onBack={restartGame} />
         )}
 
         {gameState === 'results' && results && (
-          <ResultsView results={results} tempo={tempo} onRestart={restartGame} />
+          <ResultsView results={results} tempo={tempo} onRestart={startGame} onBack={restartGame} />
         )}
       </div>
     </div>
@@ -115,7 +116,7 @@ function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { 
           )}
         </div>
 
-        <div className="bg-muted p-4 rounded-lg text-sm text-center">
+        <div className="bg-neutral-900 p-4 rounded-lg text-sm text-center text-neutral-300">
           You'll hear 4 count-in beats.
           <br />After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
         </div>
@@ -127,11 +128,19 @@ function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { 
   );
 }
 
-function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats }: { tempo: number, isRandomBPM: boolean, currentBeat: number, totalBeats: number }) {
+function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats, onBack }: { tempo: number, isRandomBPM: boolean, currentBeat: number, totalBeats: number, onBack: () => void }) {
   return (
-    <Card className="w-full border-blue-500/50 shadow-[0_0_50px_rgba(59,130,246,0.1)]">
+    <Card className="w-full border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.15)] relative">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="absolute left-2 top-2 text-neutral-500 hover:text-neutral-200 z-10" 
+        onClick={onBack}
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
       <CardHeader className="text-center">
-        <Badge variant="secondary" className="mx-auto bg-blue-500/10 text-blue-500 mb-2">LISTEN</Badge>
+        <Badge variant="secondary" className="mx-auto bg-blue-950 text-blue-400 border-blue-800 mb-2">LISTEN</Badge>
         <CardTitle className="text-2xl">{isRandomBPM ? "??? BPM" : `${tempo} BPM`}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-12">
@@ -141,7 +150,7 @@ function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats }: { tempo: n
               key={i}
               className={`w-12 h-12 rounded-full transition-all duration-100 flex items-center justify-center font-bold text-xl
                 ${i === currentBeat ? 'bg-blue-500 text-white scale-110 shadow-[0_0_20px_rgba(59,130,246,0.5)]' :
-                  i < currentBeat ? 'bg-blue-500/30 text-blue-200' : 'bg-muted text-muted-foreground'}`}
+                  i < currentBeat ? 'bg-blue-900 text-blue-300' : 'bg-neutral-800 text-neutral-500'}`}
             >
               {i + 1}
             </div>
@@ -153,18 +162,26 @@ function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats }: { tempo: n
   );
 }
 
-function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: number, isRandomBPM: boolean, tapCount: number, totalTaps: number }) {
+function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps, onBack }: { tempo: number, isRandomBPM: boolean, tapCount: number, totalTaps: number, onBack: () => void }) {
   const progress = Math.min(100, (tapCount / totalTaps) * 100);
 
   return (
-    <Card className="w-full border-green-500/50 shadow-[0_0_50px_rgba(34,197,94,0.1)] select-none">
+    <Card className="w-full border-green-500 shadow-[0_0_50px_rgba(34,197,94,0.15)] select-none relative">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="absolute left-2 top-2 text-neutral-500 hover:text-neutral-200 z-10" 
+        onClick={onBack}
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
       <CardHeader className="text-center">
-        <Badge variant="secondary" className="mx-auto bg-green-500/10 text-green-500 mb-2">TAP NOW</Badge>
+        <Badge variant="secondary" className="mx-auto bg-green-950 text-green-400 border-green-800 mb-2">TAP NOW</Badge>
         <CardTitle className="text-2xl">{isRandomBPM ? "??? BPM" : `${tempo} BPM`}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-12 space-y-8">
-        <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-4 border-muted">
-          <div className="absolute inset-0 bg-green-500/5 rounded-full animate-ping opacity-50" />
+        <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-4 border-neutral-800">
+          <div className="absolute inset-0 bg-green-900 rounded-full animate-ping opacity-30" />
           <div className="text-center z-10">
             <div className="text-5xl font-black">{tapCount}</div>
             <div className="text-sm text-neutral-400">/ {totalTaps}</div>
@@ -172,7 +189,7 @@ function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: numb
         </div>
 
         <div className="w-full space-y-2">
-          <Progress value={progress} className="h-2 bg-muted" />
+          <Progress value={progress} className="h-2 bg-neutral-800" />
           <p className="text-center text-sm text-neutral-500">Press Space or Tap Screen on the beat</p>
         </div>
       </CardContent>
@@ -180,7 +197,7 @@ function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps }: { tempo: numb
   );
 }
 
-function ResultsView({ results, tempo, onRestart }: { results: GameResults, tempo: number, onRestart: () => void }) {
+function ResultsView({ results, tempo, onRestart, onBack }: { results: GameResults, tempo: number, onRestart: () => void, onBack: () => void }) {
   const getGradeColor = (score: number) => {
     if (score >= 90) return 'text-green-500';
     if (score >= 70) return 'text-yellow-500';
@@ -225,6 +242,23 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
   };
   const tendency = getTendencyInfo();
 
+  // Safari-safe dot and box colors: use solid bg colors instead of alpha channels
+  const getDotColor = (score: number) => {
+    if (score === 100) return 'bg-green-500';
+    if (score >= 80) return 'bg-green-400';
+    if (score >= 50) return 'bg-yellow-500';
+    if (score >= 20) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  const getBoxColor = (score: number) => {
+    if (score === 100) return 'text-green-500 bg-green-950';
+    if (score >= 80) return 'text-green-400 bg-green-950';
+    if (score >= 50) return 'text-yellow-500 bg-yellow-950';
+    if (score >= 20) return 'text-orange-500 bg-orange-950';
+    return 'text-red-500 bg-red-950';
+  };
+
   return (
     <Card className="w-full animate-in fade-in zoom-in duration-500">
       <CardContent className="space-y-6 pt-6">
@@ -255,7 +289,7 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
               </div>
             </div>
 
-            <div className="h-[1px] bg-neutral-800/60 w-full my-3"></div>
+            <div className="h-[1px] bg-neutral-800 w-full my-3"></div>
 
             {/* Accuracy */}
             <div>
@@ -276,7 +310,7 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
               </div>
             </div>
 
-            <div className="h-[1px] bg-neutral-800/60 w-full my-3"></div>
+            <div className="h-[1px] bg-neutral-800 w-full my-3"></div>
 
             {/* Bottom Row */}
             <div className="flex gap-6">
@@ -297,10 +331,11 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
           </div>
         </div>
         <div className="mt-6">
-          <div className="w-full flex justify-center py-4 bg-muted/50 rounded-xl overflow-hidden">
+          {/* Timing visualizer: solid dark bg instead of translucent muted */}
+          <div className="w-full flex justify-center py-4 bg-neutral-900 rounded-xl overflow-hidden">
             <div className="relative w-[164px]">
               {/* The vertical true timeline track */}
-              <div className="absolute left-[6px] top-0 bottom-0 w-0.5 bg-muted-foreground/30"></div>
+              <div className="absolute left-[6px] top-0 bottom-0 w-0.5 bg-neutral-700"></div>
 
               {results.taps.map((tap, i) => {
                 const maxVisualError = 150;
@@ -310,22 +345,8 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
                 if (offsetPx > maxPx) offsetPx = maxPx;
                 if (offsetPx < -maxPx) offsetPx = -maxPx;
 
-                let color = 'bg-red-500/50';
-                let boxColor = 'text-red-500 bg-red-500/10';
-
-                if (tap.score === 100) {
-                  color = 'bg-green-500/50';
-                  boxColor = 'text-green-500 bg-green-500/10';
-                } else if (tap.score >= 80) {
-                  color = 'bg-green-400/50';
-                  boxColor = 'text-green-400 bg-green-400/10';
-                } else if (tap.score >= 50) {
-                  color = 'bg-yellow-500/50';
-                  boxColor = 'text-yellow-500 bg-yellow-500/10';
-                } else if (tap.score >= 20) {
-                  color = 'bg-orange-500/50';
-                  boxColor = 'text-orange-500 bg-orange-500/10';
-                }
+                const dotColor = getDotColor(tap.score);
+                const boxColor = getBoxColor(tap.score);
 
                 const errorMsRounded = Math.round(tap.errorMs);
                 const diffStr = errorMsRounded > 0 ? `+${errorMsRounded}ms` : `${errorMsRounded}ms`;
@@ -334,14 +355,14 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
                 return (
                   <div key={i} className="relative h-12 w-full">
                     {/* True beat indicator */}
-                    <div className="absolute left-[-1px] top-[50%] mt-[-1px] w-4 h-0.5 bg-muted-foreground/40 z-0"></div>
+                    <div className="absolute left-[-1px] top-[50%] mt-[-1px] w-4 h-0.5 bg-neutral-600 z-0"></div>
 
                     {/* User Tap Marker */}
                     <div
                       className="absolute left-[1px] flex items-center"
                       style={{ top: `calc(50% + ${offsetPx}px)`, transform: 'translateY(-50%)', zIndex: 10 }}
                     >
-                      <div className={`w-3 h-3 rounded-full shrink-0 ${color}`}></div>
+                      <div className={`w-3 h-3 rounded-full shrink-0 ${dotColor}`}></div>
 
                       {/* Score Box */}
                       <div className="ml-5">
@@ -350,8 +371,8 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
                           title={`Error: ${errorMsRounded}ms`}
                         >
                           {isBest && <span className="absolute -top-2 -right-2 text-xs">⭐</span>}
-                          <span className="text-[10px] font-medium opacity-60 w-4">#{i + 1}</span>
-                          <span className="text-[10px] font-medium opacity-80 flex-1 text-right">{diffStr}</span>
+                          <span className="text-[10px] font-medium text-neutral-500 w-4">#{i + 1}</span>
+                          <span className="text-[10px] font-medium flex-1 text-right">{diffStr}</span>
                         </div>
                       </div>
                     </div>
@@ -362,8 +383,15 @@ function ResultsView({ results, tempo, onRestart }: { results: GameResults, temp
           </div>
         </div>
       </CardContent>
-      <CardFooter>
-        <Button className="w-full h-12" onClick={onRestart}>Try Again</Button>
+      <CardFooter className="flex gap-3">
+        <Button variant="outline" className="flex-1 h-12" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Menu
+        </Button>
+        <Button className="flex-1 h-12" onClick={onRestart}>
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Try Again
+        </Button>
       </CardFooter>
     </Card>
   );
