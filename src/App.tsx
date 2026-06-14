@@ -1,5 +1,11 @@
 import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import GameScreen from './features/game/GameScreen';
+import Layout from './components/Layout';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Accessibility from './pages/Accessibility';
+import Contact from './pages/Contact';
 
 function App() {
   useEffect(() => {
@@ -9,9 +15,17 @@ function App() {
   }, []);
 
   return (
-    <main className="min-h-screen min-h-[100dvh] bg-neutral-950 text-neutral-50 flex items-center justify-center p-4">
-      <GameScreen />
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<GameScreen />} />
+          <Route path="privacy" element={<Privacy />} />
+          <Route path="terms" element={<Terms />} />
+          <Route path="accessibility" element={<Accessibility />} />
+          <Route path="contact" element={<Contact />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

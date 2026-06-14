@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, RotateCcw, Play, Trophy, Share2 } from 'lucide-react';
 import type { GameResults } from './types';
-import { useTempoGame } from './useTempoGame';
+import { useTempoGame, getDailyEpochDay } from './useTempoGame';
 
 // UI Components
 import { Button } from '../../components/ui/button';
@@ -17,10 +17,13 @@ export default function GameScreen() {
     setTempo,
     isRandomBPM,
     setIsRandomBPM,
+    isDailyChallenge,
     startGame,
+    startDailyChallenge,
     handleTap,
     restartGame,
     results,
+    hasPlayedDaily,
     currentBeatIndex,
     tapPhaseBeatCount,
     TOTAL_TAP_BEATS,
@@ -52,29 +55,51 @@ export default function GameScreen() {
   }, [gameState, handleTap]);
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-neutral-950 text-neutral-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div className="flex-1 flex items-center justify-center p-4 w-full">
+      <div className="w-full">
         {gameState === 'setup' && (
-          <SetupView tempo={tempo} setTempo={setTempo} onStart={startGame} isRandomBPM={isRandomBPM} setIsRandomBPM={setIsRandomBPM} />
+          <SetupView 
+            tempo={tempo} 
+            setTempo={setTempo} 
+            onStart={startGame} 
+            onDailyChallenge={startDailyChallenge}
+            isRandomBPM={isRandomBPM} 
+            setIsRandomBPM={setIsRandomBPM} 
+            hasPlayedDaily={hasPlayedDaily}
+          />
         )}
 
         {gameState === 'count-in' && (
-          <CountInView tempo={tempo} isRandomBPM={isRandomBPM} currentBeat={currentBeatIndex} totalBeats={COUNT_IN_BEATS} onBack={restartGame} />
+          <CountInView 
+            tempo={tempo} 
+            isRandomBPM={isRandomBPM} 
+            isDailyChallenge={isDailyChallenge}
+            currentBeat={currentBeatIndex} 
+            totalBeats={COUNT_IN_BEATS} 
+            onBack={restartGame} 
+          />
         )}
 
         {gameState === 'tap' && (
-          <TapPhaseView tempo={tempo} isRandomBPM={isRandomBPM} tapCount={tapPhaseBeatCount} totalTaps={TOTAL_TAP_BEATS} onBack={restartGame} />
+          <TapPhaseView 
+            tempo={tempo} 
+            isRandomBPM={isRandomBPM} 
+            isDailyChallenge={isDailyChallenge}
+            tapCount={tapPhaseBeatCount} 
+            totalTaps={TOTAL_TAP_BEATS} 
+            onBack={restartGame} 
+          />
         )}
 
         {gameState === 'results' && results && (
-          <ResultsView results={results} tempo={tempo} onRestart={startGame} onBack={restartGame} />
+          <ResultsView results={results} tempo={tempo} isDailyChallenge={isDailyChallenge} onRestart={startGame} onBack={restartGame} />
         )}
       </div>
     </div>
   );
 }
 
-function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void }) {
+function SetupView({ tempo, setTempo, onStart, onDailyChallenge, isRandomBPM, setIsRandomBPM, hasPlayedDaily }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean }) {
   return (
     <Card className="w-full">
       <CardHeader className="text-center">
@@ -121,14 +146,25 @@ function SetupView({ tempo, setTempo, onStart, isRandomBPM, setIsRandomBPM }: { 
           <br />After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
         </div>
       </CardContent>
-      <CardFooter>
-        <Button className="w-full h-14 text-lg" onClick={onStart}>Start Test</Button>
+      <CardFooter className="flex flex-col gap-3">
+        <Button className="w-full h-14 text-lg" onClick={onStart}>
+          <Play className="w-5 h-5 mr-2 fill-current" />
+          Play
+        </Button>
+        <Button
+          variant="ghost"
+          className="self-end text-sm text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 gap-2"
+          onClick={onDailyChallenge}
+        >
+          <Trophy className="w-4 h-4" />
+          {hasPlayedDaily ? "View Daily Results" : "Daily Challenge"}
+        </Button>
       </CardFooter>
     </Card>
   );
 }
 
-function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats, onBack }: { tempo: number, isRandomBPM: boolean, currentBeat: number, totalBeats: number, onBack: () => void }) {
+function CountInView({ tempo, isRandomBPM, isDailyChallenge, currentBeat, totalBeats, onBack }: { tempo: number, isRandomBPM: boolean, isDailyChallenge: boolean, currentBeat: number, totalBeats: number, onBack: () => void }) {
   return (
     <Card className="w-full border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.15)] relative">
       <Button 
@@ -139,9 +175,12 @@ function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats, onBack }: { 
       >
         <ArrowLeft className="w-5 h-5" />
       </Button>
-      <CardHeader className="text-center">
-        <Badge variant="secondary" className="mx-auto bg-blue-950 text-blue-400 border-blue-800 mb-2">LISTEN</Badge>
-        <CardTitle className="text-2xl">{isRandomBPM ? "??? BPM" : `${tempo} BPM`}</CardTitle>
+      <CardHeader className="text-center flex flex-col items-center">
+        <Badge variant="secondary" className="bg-blue-950 text-blue-400 border-blue-800 mb-2">LISTEN</Badge>
+        <CardTitle className="text-2xl">{isDailyChallenge ? "Daily Challenge" : `${tempo} BPM`}</CardTitle>
+        {isRandomBPM && !isDailyChallenge && (
+          <Badge variant="outline" className="mt-2 text-[10px] border-neutral-700 text-neutral-400 tracking-widest uppercase">Random Mode</Badge>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-12">
         <div className="flex gap-4">
@@ -162,7 +201,7 @@ function CountInView({ tempo, isRandomBPM, currentBeat, totalBeats, onBack }: { 
   );
 }
 
-function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps, onBack }: { tempo: number, isRandomBPM: boolean, tapCount: number, totalTaps: number, onBack: () => void }) {
+function TapPhaseView({ tempo, isRandomBPM, isDailyChallenge, tapCount, totalTaps, onBack }: { tempo: number, isRandomBPM: boolean, isDailyChallenge: boolean, tapCount: number, totalTaps: number, onBack: () => void }) {
   const progress = Math.min(100, (tapCount / totalTaps) * 100);
 
   return (
@@ -175,9 +214,12 @@ function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps, onBack }: { tem
       >
         <ArrowLeft className="w-5 h-5" />
       </Button>
-      <CardHeader className="text-center">
-        <Badge variant="secondary" className="mx-auto bg-green-950 text-green-400 border-green-800 mb-2">TAP NOW</Badge>
-        <CardTitle className="text-2xl">{isRandomBPM ? "??? BPM" : `${tempo} BPM`}</CardTitle>
+      <CardHeader className="text-center flex flex-col items-center">
+        <Badge variant="secondary" className="bg-green-950 text-green-400 border-green-800 mb-2">TAP NOW</Badge>
+        <CardTitle className="text-2xl">{isDailyChallenge ? "Daily Challenge" : `${tempo} BPM`}</CardTitle>
+        {isRandomBPM && !isDailyChallenge && (
+          <Badge variant="outline" className="mt-2 text-[10px] border-neutral-700 text-neutral-400 tracking-widest uppercase">Random Mode</Badge>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-12 space-y-8">
         <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-4 border-neutral-800">
@@ -197,7 +239,9 @@ function TapPhaseView({ tempo, isRandomBPM, tapCount, totalTaps, onBack }: { tem
   );
 }
 
-function ResultsView({ results, tempo, onRestart, onBack }: { results: GameResults, tempo: number, onRestart: () => void, onBack: () => void }) {
+function ResultsView({ results, tempo, isDailyChallenge, onRestart, onBack }: { results: GameResults, tempo: number, isDailyChallenge: boolean, onRestart: () => void, onBack: () => void }) {
+  const [copied, setCopied] = useState(false);
+
   const getGradeColor = (score: number) => {
     if (score >= 90) return 'text-green-500';
     if (score >= 70) return 'text-yellow-500';
@@ -242,6 +286,29 @@ function ResultsView({ results, tempo, onRestart, onBack }: { results: GameResul
   };
   const tendency = getTendencyInfo();
 
+  const handleShare = () => {
+    const dayNum = getDailyEpochDay();
+    let grid = "";
+    results.taps.forEach((tap) => {
+      if (tap.score >= 90) grid += "🟩";
+      else if (tap.score >= 70) grid += "🟨";
+      else if (tap.score >= 50) grid += "🟧";
+      else grid += "⬛";
+    });
+    
+    // Capitalize tendency.label properly
+    let niceLabel = tendency.label;
+    if (niceLabel === 'ON BEAT') niceLabel = 'On Beat';
+    if (niceLabel === 'RUSHING') niceLabel = 'Rushing';
+    if (niceLabel === 'DRAGGING') niceLabel = 'Dragging';
+
+    const text = `Whip-lash Day ${dayNum} [${niceLabel}]\n${grid}`;
+    navigator.clipboard.writeText(text);
+    
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   // Safari-safe dot and box colors: use solid bg colors instead of alpha channels
   const getDotColor = (score: number) => {
     if (score === 100) return 'bg-green-500';
@@ -272,6 +339,9 @@ function ResultsView({ results, tempo, onRestart, onBack }: { results: GameResul
             <div className="text-3xl font-black uppercase tracking-tighter text-white mt-1 leading-none">
               {tendency.label}
             </div>
+            {isDailyChallenge && (
+              <Badge className="mt-2 w-fit bg-amber-950 text-amber-400 border-amber-800">DAILY CHALLENGE</Badge>
+            )}
             <div className="text-[11px] text-neutral-400 mt-3 leading-relaxed font-medium">
               <p>{tendency.desc1}</p>
               <p>{tendency.desc2}</p>
@@ -388,10 +458,21 @@ function ResultsView({ results, tempo, onRestart, onBack }: { results: GameResul
           <ArrowLeft className="w-4 h-4 mr-2" />
           Menu
         </Button>
-        <Button className="flex-1 h-12" onClick={onRestart}>
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Try Again
-        </Button>
+        {!isDailyChallenge && (
+          <Button className="flex-1 h-12" onClick={onRestart}>
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+        )}
+        {isDailyChallenge && (
+          <Button 
+            className={`flex-1 h-12 text-white transition-colors ${copied ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'}`} 
+            onClick={handleShare}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            {copied ? "Copied!" : "Share"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

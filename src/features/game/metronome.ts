@@ -5,6 +5,7 @@ class Metronome {
   private isPlaying: boolean = false;
   private tempo: number = 100;
   private currentBeat: number = 0;
+  private maxBeats: number | null = null;
   private lookahead: number = 25.0; // ms
   private scheduleAheadTime: number = 0.1; // s
 
@@ -20,13 +21,14 @@ class Metronome {
     this.onBeat = callback;
   }
 
-  public start(tempo: number) {
+  public start(tempo: number, maxBeats?: number) {
     if (this.isPlaying) return;
     this.init();
     if (this.audioContext?.state === 'suspended') {
       this.audioContext.resume();
     }
     this.tempo = tempo;
+    this.maxBeats = maxBeats ?? null;
     this.isPlaying = true;
     this.currentBeat = 0;
     this.nextNoteTime = this.audioContext!.currentTime + 0.1;
@@ -77,6 +79,11 @@ class Metronome {
     if (!this.isPlaying) return;
 
     while (this.nextNoteTime < this.audioContext!.currentTime + this.scheduleAheadTime) {
+      // Stop if we've reached the max number of beats
+      if (this.maxBeats !== null && this.currentBeat >= this.maxBeats) {
+        this.stop();
+        return;
+      }
       this.playClick(this.nextNoteTime);
       if (this.onBeat) {
         // notify about the beat slightly before it happens so UI can react on time, or pass the exact audio time

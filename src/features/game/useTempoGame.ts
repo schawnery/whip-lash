@@ -3,12 +3,55 @@ import type { GameState, TapData, GameResults } from './types';
 import { metronome } from './metronome';
 import { calculateScoreForTap, calculateResults } from './scoring';
 
+/** Get the current date string in US Eastern Time (YYYY-M-D) */
+export function getDailyDateStr(): string {
+  const d = new Date();
+  const options: Intl.DateTimeFormatOptions = { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' };
+  const formatter = new Intl.DateTimeFormat('en-US', options);
+  const parts = formatter.formatToParts(d);
+  const year = parts.find(p => p.type === 'year')!.value;
+  const month = parts.find(p => p.type === 'month')!.value;
+  const day = parts.find(p => p.type === 'day')!.value;
+  return `${year}-${month}-${day}`;
+}
+
+/** Get the Day number relative to epoch */
+export function getDailyEpochDay(): number {
+  const d = new Date();
+  const options: Intl.DateTimeFormatOptions = { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' };
+  const formatter = new Intl.DateTimeFormat('en-US', options);
+  const parts = formatter.formatToParts(d);
+  const year = parseInt(parts.find(p => p.type === 'year')!.value);
+  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
+  const day = parseInt(parts.find(p => p.type === 'day')!.value);
+  
+  const nyDate = new Date(year, month, day);
+  const epochDate = new Date(2024, 4, 1); // May 1, 2024 as epoch
+  
+  const diffTime = Math.abs(nyDate.getTime() - epochDate.getTime());
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
+
+/** Generate a deterministic BPM for today's daily challenge (60-220). */
+function getDailyBPM(): number {
+  const dateStr = getDailyDateStr();
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = (hash * 31 + dateStr.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % (220 - 60 + 1)) + 60;
+}
+
 export const useTempoGame = () => {
   const [gameState, setGameState] = useState<GameState>('setup');
   const [tempo, setTempo] = useState<number>(100);
   const [isRandomBPM, setIsRandomBPM] = useState<boolean>(false);
+  const [isDailyChallenge, setIsDailyChallenge] = useState<boolean>(false);
   const [results, setResults] = useState<GameResults | null>(null);
   
+  const [hasPlayedDaily, setHasPlayedDaily] = useState<boolean>(false);
+  const [dailyResults, setDailyResults] = useState<GameResults | null>(null);
+
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   const [tapPhaseBeatCount, setTapPhaseBeatCount] = useState<number>(0);
 
@@ -60,6 +103,20 @@ export const useTempoGame = () => {
 
   // Clean up metronome on unmount
   useEffect(() => {
+    // Check localStorage for daily
+    const saved = localStorage.getItem('whiplash_daily');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.dateStr === getDailyDateStr()) {
+          setHasPlayedDaily(true);
+          setDailyResults(parsed.results);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     return () => {
       metronome.stop();
     };
@@ -99,13 +156,49 @@ export const useTempoGame = () => {
     audioContextRef.current = metronome.getContext();
     
     setGameState('count-in');
-    metronome.start(startingTempo);
+    metronome.start(startingTempo, COUNT_IN_BEATS);
   }, [tempo, isRandomBPM]);
+
+  const startDailyChallenge = useCallback(() => {
+    if (hasPlayedDaily && dailyResults) {
+      setResults(dailyResults);
+      setIsDailyChallenge(true);
+      setGameState('results');
+      return;
+    }
+
+    tapsRef.current = [];
+    expectedBeatsRef.current = [];
+    lastTapTimeRef.current = 0;
+    setResults(null);
+    setCurrentBeatIndex(0);
+    setTapPhaseBeatCount(0);
+
+    const dailyTempo = getDailyBPM();
+    setTempo(dailyTempo);
+    setIsDailyChallenge(true);
+
+    metronome.init();
+    audioContextRef.current = metronome.getContext();
+
+    setGameState('count-in');
+    metronome.start(dailyTempo, COUNT_IN_BEATS);
+  }, [hasPlayedDaily, dailyResults]);
 
   const finishGame = useCallback(() => {
     setGameState('results');
-    setResults(calculateResults(tapsRef.current));
-  }, []);
+    const newResults = calculateResults(tapsRef.current);
+    setResults(newResults);
+
+    if (isDailyChallenge) {
+      setHasPlayedDaily(true);
+      setDailyResults(newResults);
+      localStorage.setItem('whiplash_daily', JSON.stringify({
+        dateStr: getDailyDateStr(),
+        results: newResults
+      }));
+    }
+  }, [isDailyChallenge]);
 
   const handleTap = useCallback(() => {
     if (gameState !== 'tap' || !audioContextRef.current) return;
@@ -173,6 +266,8 @@ export const useTempoGame = () => {
   }, [gameState, finishGame]);
 
   const restartGame = useCallback(() => {
+    metronome.stop();
+    setIsDailyChallenge(false);
     setGameState('setup');
     setResults(null);
     setCurrentBeatIndex(0);
@@ -185,10 +280,13 @@ export const useTempoGame = () => {
     setTempo,
     isRandomBPM,
     setIsRandomBPM,
+    isDailyChallenge,
     startGame,
+    startDailyChallenge,
     handleTap,
     restartGame,
     results,
+    hasPlayedDaily,
     currentBeatIndex,
     tapPhaseBeatCount,
     TOTAL_TAP_BEATS,
