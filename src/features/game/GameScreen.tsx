@@ -241,6 +241,7 @@ function TapPhaseView({ tempo, isRandomBPM, isDailyChallenge, tapCount, totalTap
 
 function ResultsView({ results, tempo, isDailyChallenge, onRestart, onBack }: { results: GameResults, tempo: number, isDailyChallenge: boolean, onRestart: () => void, onBack: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [shareTextPreview, setShareTextPreview] = useState<string | null>(null);
 
   const getGradeColor = (score: number) => {
     if (score >= 90) return 'text-green-500';
@@ -289,45 +290,56 @@ function ResultsView({ results, tempo, isDailyChallenge, onRestart, onBack }: { 
   const handleShare = () => {
     const dayNum = getDailyEpochDay();
     let grid = "";
-    results.taps.forEach((tap) => {
-      if (tap.score >= 90) grid += "🟩";
-      else if (tap.score >= 70) grid += "🟨";
-      else if (tap.score >= 50) grid += "🟧";
+    results.taps.forEach((tap, index) => {
+      if (tap.score === 100) grid += "🟩";
+      else if (tap.score === 80) grid += "🟨";
+      else if (tap.score === 50) grid += "🟧";
+      else if (tap.score === 20) grid += "🟥";
       else grid += "⬛";
+      
+      if ((index + 1) % 8 === 0 && index !== results.taps.length - 1) {
+        grid += "\n";
+      }
     });
     
-    // Capitalize tendency.label properly
     let niceLabel = tendency.label;
-    if (niceLabel === 'ON BEAT') niceLabel = 'On Beat';
+    if (niceLabel === 'ON BEAT') niceLabel = 'In the Pocket';
     if (niceLabel === 'RUSHING') niceLabel = 'Rushing';
     if (niceLabel === 'DRAGGING') niceLabel = 'Dragging';
 
-    const text = `Whip-lash Day ${dayNum} [${niceLabel}]\n${grid}`;
+    const url = "https://whip-lash.vercel.app/";
+    const text = `Whip-lash | Day ${dayNum} | I was ${niceLabel}\n${grid}\nAvg Error: ${results.averageError}ms\nTest your skill @ ${url}`;
     navigator.clipboard.writeText(text);
     
+    setShareTextPreview(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    
+    setTimeout(() => {
+      setCopied(false);
+      setShareTextPreview(null);
+    }, 4000);
   };
 
   // Safari-safe dot and box colors: use solid bg colors instead of alpha channels
   const getDotColor = (score: number) => {
     if (score === 100) return 'bg-green-500';
-    if (score >= 80) return 'bg-green-400';
-    if (score >= 50) return 'bg-yellow-500';
-    if (score >= 20) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (score === 80) return 'bg-yellow-400';
+    if (score === 50) return 'bg-orange-500';
+    if (score === 20) return 'bg-red-500';
+    return 'bg-neutral-600';
   };
 
   const getBoxColor = (score: number) => {
     if (score === 100) return 'text-green-500 bg-green-950';
-    if (score >= 80) return 'text-green-400 bg-green-950';
-    if (score >= 50) return 'text-yellow-500 bg-yellow-950';
-    if (score >= 20) return 'text-orange-500 bg-orange-950';
-    return 'text-red-500 bg-red-950';
+    if (score === 80) return 'text-yellow-400 bg-yellow-950';
+    if (score === 50) return 'text-orange-500 bg-orange-950';
+    if (score === 20) return 'text-red-500 bg-red-950';
+    return 'text-neutral-400 bg-neutral-900';
   };
 
   return (
-    <Card className="w-full animate-in fade-in zoom-in duration-500">
+    <>
+      <Card className="w-full animate-in fade-in zoom-in duration-500">
       <CardContent className="space-y-6 pt-6">
 
         <div className="flex flex-row justify-between items-center gap-6 py-6 overflow-hidden">
@@ -475,5 +487,20 @@ function ResultsView({ results, tempo, isDailyChallenge, onRestart, onBack }: { 
         )}
       </CardFooter>
     </Card>
+    
+    {shareTextPreview && (
+      <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-5 fade-in duration-300 w-full max-w-sm px-4">
+        <div className="bg-neutral-900 border border-neutral-800 text-neutral-100 p-4 rounded-xl shadow-2xl flex flex-col gap-2 w-full">
+          <div className="flex items-center gap-2 text-green-500 font-medium text-sm">
+            <Share2 className="w-4 h-4" />
+            Copied to clipboard
+          </div>
+          <pre className="text-[10px] text-neutral-400 whitespace-pre-wrap font-sans bg-neutral-950 p-3 rounded-lg leading-relaxed">
+            {shareTextPreview}
+          </pre>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
