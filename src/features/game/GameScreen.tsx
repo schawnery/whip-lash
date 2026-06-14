@@ -123,42 +123,44 @@ function SetupView({ tempo, setTempo, onStart, onDailyChallenge, isRandomBPM, se
               {isRandomBPM ? "ON" : "OFF"}
             </Button>
           </div>
-          {!isRandomBPM && (
-            <>
-              <Slider
-                value={[tempo]}
-                onValueChange={(val) => setTempo(val[0])}
-                min={60}
-                max={220}
-                step={1}
-              />
-              <div className="flex justify-between text-xs text-neutral-500">
-                <span>60</span>
-                <span>120</span>
-                <span>220</span>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="bg-neutral-900 p-4 rounded-lg text-sm text-center text-neutral-300">
-          You'll hear 4 count-in beats.
-          <br />After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
+          <div className={`space-y-4 transition-opacity ${isRandomBPM ? "opacity-30 pointer-events-none" : ""}`}>
+            <Slider
+              value={[tempo]}
+              onValueChange={(val) => setTempo(val[0])}
+              min={60}
+              max={220}
+              step={1}
+              disabled={isRandomBPM}
+            />
+            <div className="flex justify-between text-xs text-neutral-500">
+              <span>60</span>
+              <span>120</span>
+              <span>220</span>
+            </div>
+          </div>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-3">
-        <Button className="w-full h-14 text-lg" onClick={onStart}>
-          <Play className="w-5 h-5 mr-2 fill-current" />
-          Play
-        </Button>
-        <Button
-          variant="ghost"
-          className="self-end text-sm text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 gap-2"
+        <Button 
+          variant={hasPlayedDaily ? "outline" : "default"}
+          className={`w-full h-12 text-base transition-colors ${!hasPlayedDaily ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`} 
           onClick={onDailyChallenge}
         >
-          <Trophy className="w-4 h-4" />
-          {hasPlayedDaily ? "View Daily Results" : "Daily Challenge"}
+          <Trophy className="w-4 h-4 mr-2" />
+          {hasPlayedDaily ? "View Daily Challenge Results" : "Play Daily Challenge"}
         </Button>
+        <Button 
+          variant="outline" 
+          className="w-full h-12 text-base" 
+          onClick={onStart}
+        >
+          <Play className="w-4 h-4 mr-2" />
+          Practice
+        </Button>
+        <div className="mt-4 bg-neutral-900 p-4 rounded-lg text-sm text-center text-neutral-400 w-full">
+          You'll hear 4 count-in beats.
+          <br />After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
+        </div>
       </CardFooter>
     </Card>
   );
