@@ -16,7 +16,7 @@ export default function Privacy() {
             <li>No personal information is currently collected</li>
             <li>No accounts are required</li>
             <li>No advertising is used</li>
-            <li>No analytics or tracking are currently used</li>
+            <li>Anonymous usage analytics (page views, referrers, devices) are collected via Vercel Analytics</li>
             <li>No user data is sold or shared</li>
           </ul>
         </section>
@@ -24,7 +24,7 @@ export default function Privacy() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold text-neutral-100">Future Changes</h2>
           <p>
-            Features may change in the future. This Privacy Policy may be updated if analytics, accounts, advertising, or other data collection methods are introduced. We will notify you of any changes by posting the new Privacy Policy on this page.
+            Features may change in the future. This Privacy Policy may be updated if accounts, advertising, or other data collection methods are introduced. We will notify you of any changes by posting the new Privacy Policy on this page.
           </p>
         </section>
 
