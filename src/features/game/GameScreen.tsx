@@ -20,12 +20,16 @@ export default function GameScreen() {
     isDailyChallenge,
     startGame,
     startDailyChallenge,
+    startTutorial,
+    skipTutorial,
+    finishTutorial,
     handleTap,
     restartGame,
     results,
     hasPlayedDaily,
     currentBeatIndex,
     tapPhaseBeatCount,
+    tutorialTapCount,
     TOTAL_TAP_BEATS,
     COUNT_IN_BEATS
   } = useTempoGame();
@@ -35,14 +39,14 @@ export default function GameScreen() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault(); // prevent scrolling
-        if (gameState === 'tap') handleTap();
+        if (gameState === 'tap' || gameState === 'tutorial-tap') handleTap();
       }
     };
 
     const handlePointerDown = (e: PointerEvent) => {
       // If clicking on buttons, let the button handle it
       if ((e.target as HTMLElement).closest('button')) return;
-      if (gameState === 'tap') handleTap();
+      if (gameState === 'tap' || gameState === 'tutorial-tap') handleTap();
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -57,14 +61,31 @@ export default function GameScreen() {
   return (
     <div className="flex-1 flex items-center justify-center p-4 w-full">
       <div className="w-full">
+        {gameState === 'welcome' && (
+          <WelcomeView onStartTutorial={startTutorial} onSkip={skipTutorial} />
+        )}
+
+        {gameState === 'tutorial-listen' && (
+          <TutorialListenView currentBeat={currentBeatIndex} totalBeats={COUNT_IN_BEATS} onBack={skipTutorial} />
+        )}
+
+        {gameState === 'tutorial-tap' && (
+          <TutorialTapView tapCount={tutorialTapCount} onBack={skipTutorial} />
+        )}
+
+        {gameState === 'tutorial-done' && (
+          <TutorialDoneView onStartPractice={finishTutorial} />
+        )}
+
         {gameState === 'setup' && (
-          <SetupView 
-            tempo={tempo} 
-            setTempo={setTempo} 
-            onStart={startGame} 
+          <SetupView
+            tempo={tempo}
+            setTempo={setTempo}
+            onStart={startGame}
             onDailyChallenge={startDailyChallenge}
-            isRandomBPM={isRandomBPM} 
-            setIsRandomBPM={setIsRandomBPM} 
+            onReplayTutorial={startTutorial}
+            isRandomBPM={isRandomBPM}
+            setIsRandomBPM={setIsRandomBPM}
             hasPlayedDaily={hasPlayedDaily}
           />
         )}
@@ -99,7 +120,7 @@ export default function GameScreen() {
   );
 }
 
-function SetupView({ tempo, setTempo, onStart, onDailyChallenge, isRandomBPM, setIsRandomBPM, hasPlayedDaily }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean }) {
+function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutorial, isRandomBPM, setIsRandomBPM, hasPlayedDaily }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, onReplayTutorial: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean }) {
   return (
     <Card className="w-full">
       <CardHeader className="text-center">
@@ -141,26 +162,138 @@ function SetupView({ tempo, setTempo, onStart, onDailyChallenge, isRandomBPM, se
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-3">
-        <Button 
-          variant={hasPlayedDaily ? "outline" : "default"}
-          className={`w-full h-12 text-base transition-colors ${!hasPlayedDaily ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`} 
+        <Button
+          className="w-full h-12 text-base"
+          onClick={onStart}
+        >
+          <Play className="w-4 h-4 mr-2" />
+          Practice
+          <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-blue-200">Recommended</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full h-12 text-base"
           onClick={onDailyChallenge}
         >
           <Trophy className="w-4 h-4 mr-2" />
           {hasPlayedDaily ? "View Daily Challenge Results" : "Play Daily Challenge"}
         </Button>
-        <Button 
-          variant="outline" 
-          className="w-full h-12 text-base" 
-          onClick={onStart}
-        >
-          <Play className="w-4 h-4 mr-2" />
-          Practice
-        </Button>
         <div className="mt-4 bg-neutral-900 p-4 rounded-lg text-sm text-center text-neutral-400 w-full">
-          You'll hear 4 count-in beats.
-          <br />After they stop, continue tapping the tempo for 16 beats using Spacebar, Click, or Tap.
+          The conductor gives a four-beat count-in.
+          <br />Continue the rhythm for 16 beats after they stop — using Spacebar, Click, or Tap.
         </div>
+        <button
+          onClick={onReplayTutorial}
+          className="text-xs text-neutral-500 hover:text-neutral-300 underline underline-offset-2 mt-1"
+        >
+          Replay Tutorial
+        </button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function WelcomeView({ onStartTutorial, onSkip }: { onStartTutorial: () => void, onSkip: () => void }) {
+  return (
+    <Card className="w-full">
+      <CardHeader className="text-center">
+        <CardTitle className="text-4xl">Keep the Beat Alive</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-center text-neutral-300">
+        <p>The conductor gives you four beats.</p>
+        <p>Then they disappear.</p>
+        <p>Continue the rhythm for 16 beats without speeding up or slowing down.</p>
+        <p className="text-sm text-neutral-500 pt-2">You'll learn the game in about 20 seconds.</p>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-3">
+        <Button className="w-full h-12 text-base" onClick={onStartTutorial}>
+          <Play className="w-4 h-4 mr-2" />
+          Start Tutorial
+        </Button>
+        <Button variant="ghost" className="w-full" onClick={onSkip}>
+          Skip
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function TutorialListenView({ currentBeat, totalBeats, onBack }: { currentBeat: number, totalBeats: number, onBack: () => void }) {
+  return (
+    <Card className="w-full border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.15)] relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute left-2 top-2 text-neutral-500 hover:text-neutral-200 z-10"
+        onClick={onBack}
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
+      <CardHeader className="text-center flex flex-col items-center">
+        <Badge variant="secondary" className="bg-blue-950 text-blue-400 border-blue-800 mb-2">CONDUCTOR'S COUNT-IN</Badge>
+        <CardTitle className="text-2xl">Listen to the conductor.</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center py-12">
+        <div className="flex gap-4">
+          {Array.from({ length: totalBeats }).map((_, i) => (
+            <div
+              key={i}
+              className={`w-12 h-12 rounded-full transition-all duration-100 flex items-center justify-center font-bold text-xl
+                ${i === currentBeat ? 'bg-blue-500 text-white scale-110 shadow-[0_0_20px_rgba(59,130,246,0.5)]' :
+                  i < currentBeat ? 'bg-blue-900 text-blue-300' : 'bg-neutral-800 text-neutral-500'}`}
+            >
+              {i + 1}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TutorialTapView({ tapCount, onBack }: { tapCount: number, onBack: () => void }) {
+  return (
+    <Card className="w-full border-green-500 shadow-[0_0_50px_rgba(34,197,94,0.15)] select-none relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute left-2 top-2 text-neutral-500 hover:text-neutral-200 z-10"
+        onClick={onBack}
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
+      <CardHeader className="text-center flex flex-col items-center">
+        <Badge variant="secondary" className="bg-green-950 text-green-400 border-green-800 mb-2">CONTINUE</Badge>
+        <CardTitle className="text-2xl">Now continue the rhythm.</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center py-12 space-y-8">
+        <div className="relative w-48 h-48 flex items-center justify-center rounded-full border-4 border-neutral-800">
+          <div className="absolute inset-0 bg-green-900 rounded-full animate-ping opacity-30" />
+          <div className="text-center z-10">
+            <div className="text-5xl font-black">{tapCount}</div>
+          </div>
+        </div>
+        <p className="text-center text-sm text-neutral-500">Press Space or Tap Screen on the beat</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TutorialDoneView({ onStartPractice }: { onStartPractice: () => void }) {
+  return (
+    <Card className="w-full animate-in fade-in zoom-in duration-300">
+      <CardHeader className="text-center">
+        <CardTitle className="text-3xl">Nice.</CardTitle>
+      </CardHeader>
+      <CardContent className="text-center text-neutral-300 space-y-2">
+        <p>That's the entire game.</p>
+        <p>Now let's try it for real.</p>
+      </CardContent>
+      <CardFooter>
+        <Button className="w-full h-12 text-base" onClick={onStartPractice}>
+          <Play className="w-4 h-4 mr-2" />
+          Start Practice
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -197,7 +330,6 @@ function CountInView({ tempo, isRandomBPM, isDailyChallenge, currentBeat, totalB
             </div>
           ))}
         </div>
-        <p className="mt-8 text-neutral-400 text-sm animate-pulse">Wait for the count-in to finish...</p>
       </CardContent>
     </Card>
   );
