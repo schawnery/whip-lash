@@ -15,6 +15,20 @@ function App() {
     document.documentElement.style.colorScheme = 'dark';
   }, []);
 
+  useEffect(() => {
+    // Safari (especially iOS) can restore a backgrounded/locked tab from its
+    // back-forward cache with JS state intact but the stylesheet not
+    // reapplied, leaving the page fully unstyled. Forcing a reload when the
+    // page is restored from that cache guarantees styles always come back.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   return (
     <>
       <BrowserRouter>
