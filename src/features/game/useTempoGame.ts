@@ -42,55 +42,85 @@ function getDailyBPM(): number {
   return (Math.abs(hash) % (220 - 60 + 1)) + 60;
 }
 
+const ONBOARDING_STORAGE_KEY = 'whiplash_onboarding_completed';
+
+function hasCompletedOnboarding(): boolean {
+  return localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+}
+
+function markOnboardingCompleted() {
+  localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+}
+
 export const useTempoGame = () => {
-  const [gameState, setGameState] = useState<GameState>('setup');
+  const [gameState, setGameState] = useState<GameState>(() => (hasCompletedOnboarding() ? 'setup' : 'welcome'));
   const [tempo, setTempo] = useState<number>(100);
   const [isRandomBPM, setIsRandomBPM] = useState<boolean>(false);
   const [isDailyChallenge, setIsDailyChallenge] = useState<boolean>(false);
   const [results, setResults] = useState<GameResults | null>(null);
-  
+
   const [hasPlayedDaily, setHasPlayedDaily] = useState<boolean>(false);
   const [dailyResults, setDailyResults] = useState<GameResults | null>(null);
 
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   const [tapPhaseBeatCount, setTapPhaseBeatCount] = useState<number>(0);
+  const [tutorialTapCount, setTutorialTapCount] = useState<number>(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
-  
+
   const expectedBeatsRef = useRef<number[]>([]);
   const tapsRef = useRef<TapData[]>([]);
   const lastTapTimeRef = useRef<number>(0);
+  const tutorialTimeoutRef = useRef<number | null>(null);
 
   // Settings
   const COUNT_IN_BEATS = 4;
   const TOTAL_TAP_BEATS = 16;
+  const TUTORIAL_TAP_BEATS = 8;
+  const TUTORIAL_TEMPO = 100;
   const MIN_DOUBLE_TAP_MS = 80;
 
   useEffect(() => {
     // Keep beat indicator updated
     metronome.setOnBeatCallback((beat, time) => {
       // beat is 0-indexed.
-      if (gameState === 'count-in') {
+      if (gameState === 'count-in' || gameState === 'tutorial-listen') {
         setCurrentBeatIndex(beat);
-        
-        // Schedule transition to tap phase
-        const secondsPerBeat = 60.0 / tempo;
-        
+
+        const activeTempo = gameState === 'tutorial-listen' ? TUTORIAL_TEMPO : tempo;
+        const secondsPerBeat = 60.0 / activeTempo;
+
         // Add the expected beats based on exact metronome timing
         if (beat === COUNT_IN_BEATS - 1) {
           // This is the last count-in beat.
           const startTime = time + secondsPerBeat;
-          
-          expectedBeatsRef.current = Array.from({ length: TOTAL_TAP_BEATS }).map(
-            (_, i) => (startTime + i * secondsPerBeat) * 1000 // Convert to ms for easier comparison
-          );
-          
-          setTimeout(() => {
-            metronome.stop();
-            setGameState('tap');
-            setCurrentBeatIndex(0);
-            setTapPhaseBeatCount(0);
-          }, secondsPerBeat * 1000 - 50); // slight buffer before phase change
+
+          if (gameState === 'count-in') {
+            expectedBeatsRef.current = Array.from({ length: TOTAL_TAP_BEATS }).map(
+              (_, i) => (startTime + i * secondsPerBeat) * 1000 // Convert to ms for easier comparison
+            );
+
+            setTimeout(() => {
+              metronome.stop();
+              setGameState('tap');
+              setCurrentBeatIndex(0);
+              setTapPhaseBeatCount(0);
+            }, secondsPerBeat * 1000 - 50); // slight buffer before phase change
+          } else {
+            // Tutorial: continue the rhythm, unscored. Auto-advance to the
+            // confirmation step regardless of how many taps land, so the
+            // player can never fail the tutorial.
+            setTimeout(() => {
+              metronome.stop();
+              setGameState('tutorial-tap');
+              setCurrentBeatIndex(0);
+              setTutorialTapCount(0);
+
+              tutorialTimeoutRef.current = window.setTimeout(() => {
+                setGameState('tutorial-done');
+              }, TUTORIAL_TAP_BEATS * secondsPerBeat * 1000 + 500);
+            }, secondsPerBeat * 1000 - 50);
+          }
         }
       }
     });
@@ -119,6 +149,9 @@ export const useTempoGame = () => {
 
     return () => {
       metronome.stop();
+      if (tutorialTimeoutRef.current) {
+        window.clearTimeout(tutorialTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -158,6 +191,41 @@ export const useTempoGame = () => {
     setGameState('count-in');
     metronome.start(startingTempo, COUNT_IN_BEATS);
   }, [tempo, isRandomBPM]);
+
+  const clearTutorialTimeout = () => {
+    if (tutorialTimeoutRef.current) {
+      window.clearTimeout(tutorialTimeoutRef.current);
+      tutorialTimeoutRef.current = null;
+    }
+  };
+
+  const startTutorial = useCallback(() => {
+    clearTutorialTimeout();
+    tapsRef.current = [];
+    expectedBeatsRef.current = [];
+    lastTapTimeRef.current = 0;
+    setCurrentBeatIndex(0);
+    setTutorialTapCount(0);
+
+    metronome.init();
+    audioContextRef.current = metronome.getContext();
+
+    setGameState('tutorial-listen');
+    metronome.start(TUTORIAL_TEMPO, COUNT_IN_BEATS);
+  }, []);
+
+  const skipTutorial = useCallback(() => {
+    clearTutorialTimeout();
+    metronome.stop();
+    markOnboardingCompleted();
+    setGameState('setup');
+  }, []);
+
+  const finishTutorial = useCallback(() => {
+    clearTutorialTimeout();
+    markOnboardingCompleted();
+    startGame();
+  }, [startGame]);
 
   const startDailyChallenge = useCallback(() => {
     if (hasPlayedDaily && dailyResults) {
@@ -201,8 +269,17 @@ export const useTempoGame = () => {
   }, [isDailyChallenge]);
 
   const handleTap = useCallback(() => {
+    if (gameState === 'tutorial-tap') {
+      if (!audioContextRef.current) return;
+      const nowMs = audioContextRef.current.currentTime * 1000;
+      if (nowMs - lastTapTimeRef.current < MIN_DOUBLE_TAP_MS) return;
+      lastTapTimeRef.current = nowMs;
+      setTutorialTapCount(prev => prev + 1);
+      return;
+    }
+
     if (gameState !== 'tap' || !audioContextRef.current) return;
-    
+
     const nowSecs = audioContextRef.current.currentTime;
     const nowMs = nowSecs * 1000;
 
@@ -283,13 +360,18 @@ export const useTempoGame = () => {
     isDailyChallenge,
     startGame,
     startDailyChallenge,
+    startTutorial,
+    skipTutorial,
+    finishTutorial,
     handleTap,
     restartGame,
     results,
     hasPlayedDaily,
     currentBeatIndex,
     tapPhaseBeatCount,
+    tutorialTapCount,
     TOTAL_TAP_BEATS,
+    TUTORIAL_TAP_BEATS,
     COUNT_IN_BEATS
   };
 };

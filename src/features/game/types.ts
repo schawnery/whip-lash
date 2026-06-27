@@ -1,4 +1,12 @@
-export type GameState = 'setup' | 'count-in' | 'tap' | 'results';
+export type GameState =
+  | 'welcome'
+  | 'tutorial-listen'
+  | 'tutorial-tap'
+  | 'tutorial-done'
+  | 'setup'
+  | 'count-in'
+  | 'tap'
+  | 'results';
 
 export interface TapData {
   timestamp: number;
