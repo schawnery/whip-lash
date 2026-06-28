@@ -3,47 +3,80 @@ import type { GameState, TapData, GameResults } from './types';
 import { metronome } from './metronome';
 import { calculateScoreForTap, calculateResults } from './scoring';
 
-/** Get the current date string in US Eastern Time (YYYY-M-D) */
-export function getDailyDateStr(): string {
-  const d = new Date();
-  const options: Intl.DateTimeFormatOptions = { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' };
-  const formatter = new Intl.DateTimeFormat('en-US', options);
-  const parts = formatter.formatToParts(d);
-  const year = parts.find(p => p.type === 'year')!.value;
-  const month = parts.find(p => p.type === 'month')!.value;
-  const day = parts.find(p => p.type === 'day')!.value;
+/** Get a UTC date string (YYYY-MM-DD) offset by a number of days from a base date. */
+function getDateStrForOffset(daysOffset: number, base: Date = new Date()): string {
+  const d = new Date(base);
+  d.setUTCDate(d.getUTCDate() + daysOffset);
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
-/** Get the Day number relative to epoch */
-export function getDailyEpochDay(): number {
-  const d = new Date();
-  const options: Intl.DateTimeFormatOptions = { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' };
-  const formatter = new Intl.DateTimeFormat('en-US', options);
-  const parts = formatter.formatToParts(d);
-  const year = parseInt(parts.find(p => p.type === 'year')!.value);
-  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-  const day = parseInt(parts.find(p => p.type === 'day')!.value);
-  
-  const nyDate = new Date(year, month, day);
-  const epochDate = new Date(2024, 4, 1); // May 1, 2024 as epoch
-  
-  const diffTime = Math.abs(nyDate.getTime() - epochDate.getTime());
+/** Get today's UTC date string (YYYY-MM-DD). Every player gets the same value on the same day. */
+export function getDailyDateStr(date: Date = new Date()): string {
+  return getDateStrForOffset(0, date);
+}
+
+/** Get the Day number relative to epoch, based on the UTC calendar date. */
+export function getDailyEpochDay(date: Date = new Date()): number {
+  const utcDate = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const epochDate = Date.UTC(2024, 4, 1); // May 1, 2024 as epoch
+
+  const diffTime = utcDate - epochDate;
   return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 }
 
-/** Generate a deterministic BPM for today's daily challenge (60-220). */
-function getDailyBPM(): number {
-  const dateStr = getDailyDateStr();
+/** Milliseconds remaining until the next UTC day begins. */
+function getMsUntilNextUTCDay(date: Date = new Date()): number {
+  const nextUTCMidnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1);
+  return nextUTCMidnight - date.getTime();
+}
+
+/** Format a millisecond duration as HH:MM:SS. */
+function formatCountdown(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+/** Hash a string into a 32-bit unsigned integer seed. */
+function hashStringToSeed(str: string): number {
   let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = (hash * 31 + dateStr.charCodeAt(i)) | 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
   }
-  return (Math.abs(hash) % (220 - 60 + 1)) + 60;
+  return hash >>> 0;
+}
+
+/** Mulberry32 seeded PRNG — returns a function producing deterministic floats in [0, 1). */
+function mulberry32(seed: number): () => number {
+  let a = seed;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Seed for a named daily variable, scoped to today's date so each variable gets its own stream. */
+function getDailySeed(component: string, date: Date = new Date()): number {
+  return hashStringToSeed(`${getDailyDateStr(date)}:${component}`);
+}
+
+/** Generate a deterministic BPM for today's challenge (60-220) from the daily seed. */
+function getDailyBPM(date: Date = new Date()): number {
+  const rand = mulberry32(getDailySeed('bpm', date));
+  return Math.floor(rand() * (220 - 60 + 1)) + 60;
 }
 
 const ONBOARDING_STORAGE_KEY = 'whiplash_onboarding_completed';
 const HAS_PLAYED_GAME_STORAGE_KEY = 'whiplash_has_played_game';
+const DAILY_RESULTS_STORAGE_KEY = 'whiplash_daily';
+const STREAK_STORAGE_KEY = 'whiplash_streak';
 
 function hasCompletedOnboarding(): boolean {
   return localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
@@ -61,6 +94,67 @@ function markHasPlayedGame() {
   localStorage.setItem(HAS_PLAYED_GAME_STORAGE_KEY, 'true');
 }
 
+interface DailyRecord {
+  dateStr: string;
+  results: GameResults;
+}
+
+function loadDailyRecord(): DailyRecord | null {
+  const saved = localStorage.getItem(DAILY_RESULTS_STORAGE_KEY);
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return null;
+  }
+}
+
+interface StreakRecord {
+  count: number;
+  lastCompletedDateStr: string;
+}
+
+function loadStreakRecord(): StreakRecord | null {
+  const saved = localStorage.getItem(STREAK_STORAGE_KEY);
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return null;
+  }
+}
+
+/** The streak as of `date`, accounting for a missed day breaking it even before today is played. */
+function getCurrentStreak(date: Date = new Date()): number {
+  const existing = loadStreakRecord();
+  if (!existing) return 0;
+
+  const today = getDailyDateStr(date);
+  const yesterday = getDateStrForOffset(-1, date);
+  if (existing.lastCompletedDateStr === today || existing.lastCompletedDateStr === yesterday) {
+    return existing.count;
+  }
+  return 0;
+}
+
+/** Record that Today's Challenge was completed, extending the streak if completed yesterday too. */
+function recordStreakCompletion(date: Date = new Date()): void {
+  const today = getDailyDateStr(date);
+  const yesterday = getDateStrForOffset(-1, date);
+  const existing = loadStreakRecord();
+
+  let newCount: number;
+  if (existing?.lastCompletedDateStr === today) {
+    newCount = existing.count;
+  } else if (existing?.lastCompletedDateStr === yesterday) {
+    newCount = existing.count + 1;
+  } else {
+    newCount = 1;
+  }
+
+  localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify({ count: newCount, lastCompletedDateStr: today }));
+}
+
 export const useTempoGame = () => {
   const [gameState, setGameState] = useState<GameState>(() => (hasCompletedOnboarding() ? 'setup' : 'welcome'));
   const [tempo, setTempo] = useState<number>(100);
@@ -68,9 +162,12 @@ export const useTempoGame = () => {
   const [isDailyChallenge, setIsDailyChallenge] = useState<boolean>(false);
   const [results, setResults] = useState<GameResults | null>(null);
 
-  const [hasPlayedDaily, setHasPlayedDaily] = useState<boolean>(false);
-  const [dailyResults, setDailyResults] = useState<GameResults | null>(null);
+  const [dailyRecord, setDailyRecord] = useState<DailyRecord | null>(() => loadDailyRecord());
   const [showPracticeRecommendation, setShowPracticeRecommendation] = useState<boolean>(() => !hasPlayedAnyGame());
+
+  // Ticks once a second so the daily countdown, BPM preview, and streak stay
+  // live (and roll over correctly) without requiring a page reload.
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
 
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   const [tapPhaseBeatCount, setTapPhaseBeatCount] = useState<number>(0);
@@ -89,6 +186,19 @@ export const useTempoGame = () => {
   const TUTORIAL_TAP_BEATS = 8;
   const TUTORIAL_TEMPO = 100;
   const MIN_DOUBLE_TAP_MS = 80;
+
+  const nowDate = new Date(nowTick);
+  const dailyDateStr = getDailyDateStr(nowDate);
+  const hasPlayedDaily = dailyRecord?.dateStr === dailyDateStr;
+  const dailyResults = hasPlayedDaily ? dailyRecord!.results : null;
+  const dailyBPM = getDailyBPM(nowDate);
+  const dailyCountdown = formatCountdown(getMsUntilNextUTCDay(nowDate));
+  const streak = getCurrentStreak(nowDate);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNowTick(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     // Keep beat indicator updated
@@ -143,20 +253,6 @@ export const useTempoGame = () => {
 
   // Clean up metronome on unmount
   useEffect(() => {
-    // Check localStorage for daily
-    const saved = localStorage.getItem('whiplash_daily');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.dateStr === getDailyDateStr()) {
-          setHasPlayedDaily(true);
-          setDailyResults(parsed.results);
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-
     return () => {
       metronome.stop();
       if (tutorialTimeoutRef.current) {
@@ -252,16 +348,15 @@ export const useTempoGame = () => {
     setCurrentBeatIndex(0);
     setTapPhaseBeatCount(0);
 
-    const dailyTempo = getDailyBPM();
-    setTempo(dailyTempo);
+    setTempo(dailyBPM);
     setIsDailyChallenge(true);
 
     metronome.init();
     audioContextRef.current = metronome.getContext();
 
     setGameState('count-in');
-    metronome.start(dailyTempo, COUNT_IN_BEATS);
-  }, [hasPlayedDaily, dailyResults]);
+    metronome.start(dailyBPM, COUNT_IN_BEATS);
+  }, [hasPlayedDaily, dailyResults, dailyBPM]);
 
   const finishGame = useCallback(() => {
     setGameState('results');
@@ -272,12 +367,10 @@ export const useTempoGame = () => {
     setShowPracticeRecommendation(false);
 
     if (isDailyChallenge) {
-      setHasPlayedDaily(true);
-      setDailyResults(newResults);
-      localStorage.setItem('whiplash_daily', JSON.stringify({
-        dateStr: getDailyDateStr(),
-        results: newResults
-      }));
+      const record: DailyRecord = { dateStr: getDailyDateStr(), results: newResults };
+      localStorage.setItem(DAILY_RESULTS_STORAGE_KEY, JSON.stringify(record));
+      setDailyRecord(record);
+      recordStreakCompletion();
     }
   }, [isDailyChallenge]);
 
@@ -380,6 +473,9 @@ export const useTempoGame = () => {
     restartGame,
     results,
     hasPlayedDaily,
+    dailyBPM,
+    dailyCountdown,
+    streak,
     showPracticeRecommendation,
     currentBeatIndex,
     tapPhaseBeatCount,
