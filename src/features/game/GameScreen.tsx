@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, RotateCcw, Play, Trophy, Share2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Play, Trophy, Share2, ChevronDown, Settings } from 'lucide-react';
 import type { GameResults } from './types';
 import { useTempoGame, getDailyEpochDay } from './useTempoGame';
 
@@ -129,7 +129,7 @@ export default function GameScreen() {
 }
 
 function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutorial, isRandomBPM, setIsRandomBPM, hasPlayedDaily, dailyBPM, dailyCountdown, streak, showPracticeRecommendation }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, onReplayTutorial: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean, dailyBPM: number, dailyCountdown: string, streak: number, showPracticeRecommendation: boolean }) {
-  const [showCustomize, setShowCustomize] = useState(false);
+  const [showPracticeSettings, setShowPracticeSettings] = useState(false);
 
   return (
     <Card className="w-full">
@@ -162,12 +162,12 @@ function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutoria
           </p>
         </div>
 
-        {/* Practice — secondary CTA, BPM grouped with the action */}
-        <div className="space-y-3">
+        {/* Practice — single card containing BPM, action, and settings */}
+        <div className="bg-neutral-900 rounded-lg p-4 w-full space-y-3">
           {showPracticeRecommendation && (
             <p className="text-xs text-neutral-500 text-center">New here? Start with Practice.</p>
           )}
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-neutral-200">Practice</span>
             <span className="text-sm font-medium text-neutral-400">{isRandomBPM ? "?" : tempo} BPM</span>
           </div>
@@ -179,46 +179,48 @@ function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutoria
             <Play className="w-4 h-4 mr-2" />
             Practice
           </Button>
-        </div>
 
-        {/* Customize — tertiary, collapsed by default */}
-        <div>
-          <button
-            onClick={() => setShowCustomize(!showCustomize)}
-            className="flex items-center justify-between w-full text-xs font-medium text-neutral-500 hover:text-neutral-300 py-1"
-          >
-            <span>Customize</span>
-            <ChevronDown className={`w-4 h-4 transition-transform ${showCustomize ? 'rotate-180' : ''}`} />
-          </button>
-          {showCustomize && (
-            <div className="space-y-4 pt-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-neutral-300">Random BPM</span>
-                <Button
-                  variant={isRandomBPM ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setIsRandomBPM(!isRandomBPM)}
-                >
-                  {isRandomBPM ? "ON" : "OFF"}
-                </Button>
-              </div>
-              <div className={`space-y-4 transition-opacity ${isRandomBPM ? "opacity-30 pointer-events-none" : ""}`}>
-                <Slider
-                  value={[tempo]}
-                  onValueChange={(val) => setTempo(val[0])}
-                  min={60}
-                  max={220}
-                  step={1}
-                  disabled={isRandomBPM}
-                />
-                <div className="flex justify-between text-xs text-neutral-500">
-                  <span>60</span>
-                  <span>120</span>
-                  <span>220</span>
+          <div className="border-t border-neutral-800 pt-3">
+            <button
+              onClick={() => setShowPracticeSettings(!showPracticeSettings)}
+              className="flex items-center justify-between w-full text-xs font-medium text-neutral-500 hover:text-neutral-300 py-1"
+            >
+              <span className="flex items-center gap-1.5">
+                <Settings className="w-3.5 h-3.5" />
+                Practice Settings
+              </span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showPracticeSettings ? 'rotate-180' : ''}`} />
+            </button>
+            {showPracticeSettings && (
+              <div className="space-y-4 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-neutral-300">Random BPM</span>
+                  <Button
+                    variant={isRandomBPM ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsRandomBPM(!isRandomBPM)}
+                  >
+                    {isRandomBPM ? "ON" : "OFF"}
+                  </Button>
+                </div>
+                <div className={`space-y-4 transition-opacity ${isRandomBPM ? "opacity-30 pointer-events-none" : ""}`}>
+                  <Slider
+                    value={[tempo]}
+                    onValueChange={(val) => setTempo(val[0])}
+                    min={60}
+                    max={220}
+                    step={1}
+                    disabled={isRandomBPM}
+                  />
+                  <div className="flex justify-between text-xs text-neutral-500">
+                    <span>60</span>
+                    <span>120</span>
+                    <span>220</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-3">
