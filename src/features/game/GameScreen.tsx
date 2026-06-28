@@ -27,6 +27,9 @@ export default function GameScreen() {
     restartGame,
     results,
     hasPlayedDaily,
+    dailyBPM,
+    dailyCountdown,
+    streak,
     showPracticeRecommendation,
     currentBeatIndex,
     tapPhaseBeatCount,
@@ -88,6 +91,9 @@ export default function GameScreen() {
             isRandomBPM={isRandomBPM}
             setIsRandomBPM={setIsRandomBPM}
             hasPlayedDaily={hasPlayedDaily}
+            dailyBPM={dailyBPM}
+            dailyCountdown={dailyCountdown}
+            streak={streak}
             showPracticeRecommendation={showPracticeRecommendation}
           />
         )}
@@ -122,7 +128,7 @@ export default function GameScreen() {
   );
 }
 
-function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutorial, isRandomBPM, setIsRandomBPM, hasPlayedDaily, showPracticeRecommendation }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, onReplayTutorial: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean, showPracticeRecommendation: boolean }) {
+function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutorial, isRandomBPM, setIsRandomBPM, hasPlayedDaily, dailyBPM, dailyCountdown, streak, showPracticeRecommendation }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, onReplayTutorial: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean, dailyBPM: number, dailyCountdown: string, streak: number, showPracticeRecommendation: boolean }) {
   return (
     <Card className="w-full">
       <CardHeader className="text-center">
@@ -174,14 +180,29 @@ function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutoria
           <Play className="w-4 h-4 mr-2" />
           Practice
         </Button>
-        <Button
-          variant="outline"
-          className="w-full h-12 text-base"
-          onClick={onDailyChallenge}
-        >
-          <Trophy className="w-4 h-4 mr-2" />
-          {hasPlayedDaily ? "View Daily Challenge Results" : "Play Daily Challenge"}
-        </Button>
+        <div className="bg-neutral-900 rounded-lg p-4 w-full space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-neutral-200">Today's Challenge</span>
+            {streak > 0 && (
+              <span className="text-xs font-medium text-neutral-300">🔥 {streak} Day Streak</span>
+            )}
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold tracking-tight">{dailyBPM} BPM</div>
+            <p className="text-xs text-neutral-500 mt-1">Everyone is playing the same challenge today.</p>
+          </div>
+          <p className="text-center text-xs text-neutral-500">
+            New challenge in <span className="font-mono text-neutral-300">{dailyCountdown}</span>
+          </p>
+          <Button
+            variant="outline"
+            className="w-full h-12 text-base"
+            onClick={onDailyChallenge}
+          >
+            <Trophy className="w-4 h-4 mr-2" />
+            {hasPlayedDaily ? "View Today's Challenge Results" : "Play Today's Challenge"}
+          </Button>
+        </div>
         <div className="mt-4 bg-neutral-900 p-4 rounded-lg text-sm text-center text-neutral-400 w-full">
           The conductor gives a four-beat count-in.
           <br />Continue the rhythm for 16 beats after they stop — using Spacebar, Click, or Tap.
@@ -316,7 +337,7 @@ function CountInView({ tempo, isRandomBPM, isDailyChallenge, currentBeat, totalB
       </Button>
       <CardHeader className="text-center flex flex-col items-center">
         <Badge variant="secondary" className="bg-blue-950 text-blue-400 border-blue-800 mb-2">LISTEN</Badge>
-        <CardTitle className="text-2xl">{isDailyChallenge ? "Daily Challenge" : `${tempo} BPM`}</CardTitle>
+        <CardTitle className="text-2xl">{isDailyChallenge ? "Today's Challenge" : `${tempo} BPM`}</CardTitle>
         {isRandomBPM && !isDailyChallenge && (
           <Badge variant="outline" className="mt-2 text-[10px] border-neutral-700 text-neutral-400 tracking-widest uppercase">Random Mode</Badge>
         )}
@@ -354,7 +375,7 @@ function TapPhaseView({ tempo, isRandomBPM, isDailyChallenge, tapCount, totalTap
       </Button>
       <CardHeader className="text-center flex flex-col items-center">
         <Badge variant="secondary" className="bg-green-950 text-green-400 border-green-800 mb-2">TAP NOW</Badge>
-        <CardTitle className="text-2xl">{isDailyChallenge ? "Daily Challenge" : `${tempo} BPM`}</CardTitle>
+        <CardTitle className="text-2xl">{isDailyChallenge ? "Today's Challenge" : `${tempo} BPM`}</CardTitle>
         {isRandomBPM && !isDailyChallenge && (
           <Badge variant="outline" className="mt-2 text-[10px] border-neutral-700 text-neutral-400 tracking-widest uppercase">Random Mode</Badge>
         )}
@@ -490,7 +511,7 @@ function ResultsView({ results, tempo, isDailyChallenge, onRestart, onBack }: { 
               {tendency.label}
             </div>
             {isDailyChallenge && (
-              <Badge className="mt-2 w-fit bg-amber-950 text-amber-400 border-amber-800">DAILY CHALLENGE</Badge>
+              <Badge className="mt-2 w-fit bg-amber-950 text-amber-400 border-amber-800">TODAY'S CHALLENGE</Badge>
             )}
             <div className="text-[11px] text-neutral-400 mt-3 leading-relaxed font-medium">
               <p>{tendency.desc1}</p>
