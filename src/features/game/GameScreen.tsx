@@ -27,6 +27,7 @@ export default function GameScreen() {
     restartGame,
     results,
     hasPlayedDaily,
+    showPracticeRecommendation,
     currentBeatIndex,
     tapPhaseBeatCount,
     tutorialTapCount,
@@ -87,6 +88,7 @@ export default function GameScreen() {
             isRandomBPM={isRandomBPM}
             setIsRandomBPM={setIsRandomBPM}
             hasPlayedDaily={hasPlayedDaily}
+            showPracticeRecommendation={showPracticeRecommendation}
           />
         )}
 
@@ -120,7 +122,7 @@ export default function GameScreen() {
   );
 }
 
-function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutorial, isRandomBPM, setIsRandomBPM, hasPlayedDaily }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, onReplayTutorial: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean }) {
+function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutorial, isRandomBPM, setIsRandomBPM, hasPlayedDaily, showPracticeRecommendation }: { tempo: number, setTempo: (v: number) => void, onStart: () => void, onDailyChallenge: () => void, onReplayTutorial: () => void, isRandomBPM: boolean, setIsRandomBPM: (v: boolean) => void, hasPlayedDaily: boolean, showPracticeRecommendation: boolean }) {
   return (
     <Card className="w-full">
       <CardHeader className="text-center">
@@ -162,13 +164,15 @@ function SetupView({ tempo, setTempo, onStart, onDailyChallenge, onReplayTutoria
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-3">
+        {showPracticeRecommendation && (
+          <p className="text-xs text-neutral-500 text-center">New here? Start with Practice.</p>
+        )}
         <Button
           className="w-full h-12 text-base"
           onClick={onStart}
         >
           <Play className="w-4 h-4 mr-2" />
           Practice
-          <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-blue-200">Recommended</span>
         </Button>
         <Button
           variant="outline"
