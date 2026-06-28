@@ -43,6 +43,7 @@ function getDailyBPM(): number {
 }
 
 const ONBOARDING_STORAGE_KEY = 'whiplash_onboarding_completed';
+const HAS_PLAYED_GAME_STORAGE_KEY = 'whiplash_has_played_game';
 
 function hasCompletedOnboarding(): boolean {
   return localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
@@ -50,6 +51,14 @@ function hasCompletedOnboarding(): boolean {
 
 function markOnboardingCompleted() {
   localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+}
+
+function hasPlayedAnyGame(): boolean {
+  return localStorage.getItem(HAS_PLAYED_GAME_STORAGE_KEY) === 'true';
+}
+
+function markHasPlayedGame() {
+  localStorage.setItem(HAS_PLAYED_GAME_STORAGE_KEY, 'true');
 }
 
 export const useTempoGame = () => {
@@ -61,6 +70,7 @@ export const useTempoGame = () => {
 
   const [hasPlayedDaily, setHasPlayedDaily] = useState<boolean>(false);
   const [dailyResults, setDailyResults] = useState<GameResults | null>(null);
+  const [showPracticeRecommendation, setShowPracticeRecommendation] = useState<boolean>(() => !hasPlayedAnyGame());
 
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   const [tapPhaseBeatCount, setTapPhaseBeatCount] = useState<number>(0);
@@ -258,6 +268,9 @@ export const useTempoGame = () => {
     const newResults = calculateResults(tapsRef.current);
     setResults(newResults);
 
+    markHasPlayedGame();
+    setShowPracticeRecommendation(false);
+
     if (isDailyChallenge) {
       setHasPlayedDaily(true);
       setDailyResults(newResults);
@@ -367,6 +380,7 @@ export const useTempoGame = () => {
     restartGame,
     results,
     hasPlayedDaily,
+    showPracticeRecommendation,
     currentBeatIndex,
     tapPhaseBeatCount,
     tutorialTapCount,
